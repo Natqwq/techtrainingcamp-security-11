@@ -19,9 +19,9 @@
 - user_behavior_spy 负责监视用户活动情况，即风控引擎
 - user_risk_ctrl 负责给出用户对应风险行为的处理，即风控策略的实现
 - index.html 登录成功后的主页，登出和注销的按钮设置在此
-- login_username 用户名登录的页面，可切换到注册页面或者手机号登录的页面
-- login_phone 手机号登录的页面， 可切换到注册界面或者用户名登录的界面
-- register 注册的界面，可返回到用户名登录界面
+- login_username.html 用户名登录的页面，可切换到注册页面或者手机号登录的页面
+- login_phone.html 手机号登录的页面， 可切换到注册界面或者用户名登录的界面
+- register.html 注册的界面，可返回到用户名登录界面
 
 
 
