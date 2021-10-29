@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>index</title>
+</head>
+<body>
+<h1> hello {{.Name}}!</h1>
+<p>你的电话是{{.Phone}}</p>
+<p>你的密码是{{.Password}}</p>
+
+<form action="/index" method="post" autocomplete="off">
+    <div>
+        <button type="submit" id="logout" name="logout" value="1">登出</button>
+        <button type="submit" id="logout" name="logout" value="2">注销</button>
+    </div>
+</form>
+</body>
+</html>
