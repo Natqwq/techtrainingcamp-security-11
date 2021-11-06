@@ -48,7 +48,7 @@ func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	limiter := rate.NewIPLimiter(i.r, i.b)
+	limiter := rate.NewLimiter(i.r, i.b)
 
 	i.ips[ip] = limiter
 
