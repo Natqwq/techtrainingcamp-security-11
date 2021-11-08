@@ -127,10 +127,19 @@
     });
     let fingerprint =  new Fingerprint().get();
     $("#login").click(function (){
-
+        let UserName = $("#UserName").val();
+        let Password = $("#Password").val();
+        if(UserName.length < 5 || UserName.length > 16 || Password.length < 5 || Password.length > 16){
+            M.toast({
+                html : "请检查账号密码输入！",
+                classes:"red rounded"
+            })
+            $("#Password").val("");
+            return;
+        }
         let loginData = {
-            "UserName": $("#UserName").val(),
-            "Password": $("#Password").val(),
+            "UserName": UserName,
+            "Password": Password,
             "Environment": {
                 "DeviceID" : fingerprint,
             }
@@ -153,6 +162,8 @@
                     html : res.responseJSON.msg,
                     classes: "rounded red"
                 })
+                // $("#UserName").val = "";
+                $("#Password").val("");
             }
         })
     });

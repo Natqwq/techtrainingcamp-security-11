@@ -152,7 +152,10 @@
             contentType: "application/json",
             data : getVerifyCode,
             success:function (res){
-                alert("验证码发送成功!")
+                M.toast({
+                    html: "验证码已发送，请注意查收！",
+                    classes: "green rounded"
+                })
             },
             error: function (res){
                 alert("验证码发送失败！")
@@ -163,15 +166,24 @@
 
     //登录按钮
     $("#login").click(function (){
+        let phoneNumber = $("#PhoneNumber").val();
+        let verifyCode  = $("#VerifyCode").val();
+        if(phoneNumber.length < 1 || verifyCode.length != 6) {
+            M.toast({
+                html : "输入的用户手机号错误或者验证码格式不正确！",
+                classes : "red rounded"
+            })
+            return;
+        }
         let loginData = {
-            "PhoneNumber": $("#PhoneNumber").val(),
-            "VerifyCode": $("#VerifyCode").val(),
+            "PhoneNumber": phoneNumber,
+            "VerifyCode": verifyCode,
             "Environment": {
                 "DeviceID" : fingerprint,
             }
         };
         let dataJson = JSON.stringify(loginData);
-        console.log(dataJson)
+        // console.log(dataJson)
         $.ajax({
             url: '/login_phone',
             type: 'post',
@@ -179,10 +191,13 @@
             data: dataJson,
             dataType : 'json',
             success:function (res){
-                console.log(res);
+                window.location.replace("/index");
             },
             error: function (res){
-                console.log(res);
+                M.toast({
+                    html: res.responseJSON.msg,
+                    classes: "rounded red"
+                })
             }
         })
     });

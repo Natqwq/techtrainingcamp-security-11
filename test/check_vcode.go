@@ -15,6 +15,7 @@ func checkVcode(v Post) bool {
 		fmt.Println(err)
 	}
 	var vcheck CheckVcode
+	//TODO；这里应该是根据手机号进行查找
 	db.Where("vcode = ?", v.Vcode).First(&vcheck)
 
 	if vcheck.Vcode != v.Vcode || phone != vcheck.Phone {
@@ -22,7 +23,8 @@ func checkVcode(v Post) bool {
 	}
 	int64, _ := strconv.ParseInt(vcheck.Create, 10, 64)
 	now := time.Now().Unix()
-	if now-int64 > 60 {
+	//10分钟以内均有效
+	if now-int64 > 60*10 {
 		return false
 	}
 	return true
@@ -39,6 +41,7 @@ func saveVcode(phone string, code string) bool {
 	var checkVcode CheckVcode
 	checkVcode.Vcode = code
 	checkVcode.Phone = phone
+	checkVcode.Create = strconv.FormatInt(time.Now().Unix(), 10)
 	fmt.Println(checkVcode)
 	db.Create(&checkVcode)
 	return true

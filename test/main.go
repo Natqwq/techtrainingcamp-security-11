@@ -90,8 +90,6 @@ func main() {
 	})
 
 	r.POST("/", func(c *gin.Context) {
-		//username := c.PostForm("UserName")
-		//password := c.PostForm("Password")
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应实现用户名密码比对，并提取对应电话号码
@@ -133,24 +131,17 @@ func main() {
 		if !checkVcode(json) {
 			c.JSON(401, gin.H{
 				"success": false,
-				"msg":     "验证码验证失败!",
+				"msg":     "验证码错误，请重试!",
 			})
 			return
 		}
-		//fmt.Print(vcode)
 		c.JSON(200, gin.H{
-			"success":    true,
-			"msg":        "手机号登录成功!",
-			"VerifyCode": json.Vcode,
+			"success": true,
+			"msg":     "手机号登录成功!",
 		})
 	}) //手机号登录的表单处理
 
 	r.POST("/register", func(c *gin.Context) {
-		//username := c.PostForm("UserName")
-		//password := c.PostForm("Password")
-		////password2 := c.PostForm("password2")
-		//phone := c.PostForm("PhoneNumber")
-		//vcode := c.PostForm("VerifyCode")
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应当实现对新用户信息的存储
@@ -170,35 +161,14 @@ func main() {
 			})
 			return
 		}
-
 		save(json.Username, json.Phone, json.Password)
-
-		//if !checkVcode(jvcode,json.Phone) {
-		//	c.JSON(401,gin.H{
-		//		"success":false,
-		//		"msg":"验证码验证失败!",
-		//	})
-		//	c.Request.URL.Path, c.Request.Method = "/login_phone", "GET"
-		//	r.HandleContext(c)
-		//	return
-		//}
-
-		//fmt.Print(vcode)
 		c.JSON(200, gin.H{
-			"success":    true,
-			"msg":        "注册成功!",
-			"VerifyCode": json.Vcode,
-			"status":     200,
+			"success": true,
+			"msg":     "注册成功!",
 		})
-		//c.Request.URL.Path, c.Request.Method = "/", "GET"
-		//r.HandleContext(c)
 	}) //注册的表单处理
 
 	r.POST("/logout", func(c *gin.Context) {
-		//logout := c.PostForm("logout")
-		//phone := c.PostForm("PhoneNumber")
-		//password := c.PostForm("Password")
-		//username := c.PostForm("UserName")
 		var json Post
 		//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
 		c.ShouldBindJSON(&json)

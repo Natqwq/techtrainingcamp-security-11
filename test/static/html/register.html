@@ -92,10 +92,13 @@
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="input-field col s12">
+                                    <div class="input-field col s8">
                                         <i class="material-icons prefix">local_phone</i>
                                         <input id="PhoneNumber" type="text"  class="validate" name="PhoneNumber" value="">
                                         <label for="PhoneNumber">手机号</label>
+                                    </div>
+                                    <div class="col s4 center-align">
+                                        <a class="btn-large blue light-2" id="getVerifyCodeBtn">获取验证码</a>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -133,53 +136,88 @@
     let fingerprint =  new Fingerprint().get();
 
     $("#getVerifyCodeBtn").click(function () {
+        let phoneNum = $("#PhoneNumber").val()
+        //TODO:正则判断手机号
+        if(phoneNum.length < 1){
+            alert("请输入正确的电话号码！")
+            return;
+        }
         let getVerifyCode = {
-            PhoneNumber: $("#PhoneNumber").val(),
+            PhoneNumber: phoneNum,
             Environment: {
                 DeviceID: fingerprint
             }
         }
+        getVerifyCode = JSON.stringify(getVerifyCode)
+        console.log(getVerifyCode)
         //获取验证码
-        $.ajax()
+        $.ajax({
+            url: "/getVCode",
+            type: "post",
+            dataType: "json",
+            contentType: "application/json",
+            data : getVerifyCode,
+            success:function (res){
+                M.toast({
+                    html: "验证码已发送，请注意查收！",
+                    classes: "green rounded"
+                })
+            },
+            error: function (res){
+                M.toast({
+                    html: res.responseJSON.msg,
+                    classes : "red rounded"
+                })
+                // alert("验证码发送失败！")
+            }
+        })
     })
+
 
     //注册按钮
     $("#register").click(function (){
-        if($("#Password").val() != $("#ConfirmPassword").val()){
+        if($("#Password").val() != $("#ConfirmPassword").val()) {
             M.toast({
-                html : "两次密码不一致！",
+                html: "两次密码不一致！",
                 classes: "rounded red"
             })
+        }else{
+            let loginData = {
+                "UserName": $("#UserName").val(),
+                "Password": $("#Password").val(),
+                "PhoneNumber": $("#PhoneNumber").val(),
+                "VerifyCode": $("#VerifyCode").val(),
+                "Environment": {
+                    "DeviceID" : fingerprint,
+                }
+            };
+            let dataJson = JSON.stringify(loginData);
+            console.log(dataJson)
+            $.ajax({
+                url: '/register',
+                type: 'post',
+                contentType: 'application/json',
+                data: dataJson,
+                dataType : 'json',
+                success : function (res) {
+                    M.toast({
+                        html : "注册成功！",
+                        classes : "green rounded"
+                    })
+                    window.location.replace("/");
+                },
+                error : function (res){
+                    M.toast({
+                        html: res.responseJSON.msg,
+                        classed: "green rounded"
+                    })
+
+                }
+            }).done(function (data){
+                console.log(data.code);
+            })
         }
-        let loginData = {
-            "UserName": $("#UserName").val(),
-            "Password": $("#Password").val(),
-            "PhoneNumber": $("#PhoneNumber").val(),
-            "VerifyCode": $("#VerifyCode").val(),
-            "Environment": {
-                "DeviceID" : fingerprint,
-            }
-        };
-        let dataJson = JSON.stringify(loginData);
-        console.log(dataJson)
-        $.ajax({
-            url: '/register',
-            type: 'post',
-            contentType: 'application/json',
-            data: dataJson,
-            dataType : 'json'
-        }).done(function (data){
-            console.log(data.code);
-            if(data.code === 200){
-                location.href("/index");
-            }else if(data.code === 400){
-                //.....
-                location.href("/");
-            }else if(data.code === 401){
-                //....
-                location.href("/");
-            }
-        })
+
     });
 
 </script>
