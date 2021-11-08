@@ -84,7 +84,7 @@ func main() {
 		saveVcode(checkVcode.Phone, code) //存到数据库
 		c.JSON(200, gin.H{
 			"success": true,
-			"code":    code,
+			"msg":     "发送成功！",
 		})
 		return
 	})
