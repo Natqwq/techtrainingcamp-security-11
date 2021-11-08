@@ -1,0 +1,36 @@
+body {
+    background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/assessment/background.png") no-repeat center;
+    /*background-color: rgba(244,244,244);*/
+    background-size: cover;
+    background-attachment: fixed;
+    -moz-transform: scale(1);
+    -moz-transform-origin: 0 0;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+#channelTitleSpan{
+    right: 0;
+    left: 0 !important;
+    text-align: center;
+    font-size: 43px;
+}
+/*----login---------*/
+.login-container{
+    width: 90%; !important;
+    margin-bottom: 6% !important;
+    margin-top: 6% !important;
+}
+.bg{
+    background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/CatchMe/index-2.jpg") no-repeat center;
+    background-size: cover;
+    background-attachment: fixed;
+    -moz-transform: scale(1);
+    -moz-transform-origin: 0 0;
+    display: flex;
+    position: relative;
+    flex-direction: column;
+}
+.error{
+    color: red
+}

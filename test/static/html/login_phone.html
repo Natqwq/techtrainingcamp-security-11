@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <title>手机号登录</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/me.css" type="text/css">
+    <link rel="stylesheet" href="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/css/materialize.min.css" type="text/css">
+    <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/jquery.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/materialize.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs/v0.5.1/fingerprint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/validate-js/2.0.1/validate.min.js" integrity="sha512-8GLIg5ayTvD6F9ML/cSRMD19nHqaLPWxISikfc5hsMJyX7Pm+IIbHlhBDY2slGisYLBqiVNVll+71CYDD5RBqA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        body {
+            background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/assessment/background.png") no-repeat center;
+            /*background-color: rgba(244,244,244);*/
+            background-size: cover;
+            background-attachment: fixed;
+            -moz-transform: scale(1);
+            -moz-transform-origin: 0 0;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+
+
+        }
+        #channelTitleSpan{
+            right: 0;
+            left: 0 !important;
+            text-align: center;
+            font-size: 43px;
+        }
+        /*----login---------*/
+        .login-container{
+            width: 90%; !important;
+            margin-bottom: 6%;
+            margin-top: 6%;
+        }
+        .bg{
+            background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/CatchMe/index-2.jpg") no-repeat center;
+            background-size: cover;
+            background-attachment: fixed;
+            -moz-transform: scale(1);
+            -moz-transform-origin: 0 0;
+            display: flex;
+            position: relative;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body class="bg">
+    <!--nav开始-->
+    <nav>
+        <div class="nav-wrapper teal light-2">
+            <a href="#" class="brand-logo center">抓到你了</a>
+        </div>
+    </nav>
+    <!--nav结束-->
+
+<!--主体开始-->
+<div class="container login-container" style="flex: 1 0 auto; width: 90%">
+    <!--开始-->
+    <div class="row section ">
+        <div class="col s12 l12">
+            <div class="card horizontal large" style="height: 600px; background-color: rgba(255,255,255,0.5)" >
+                <div class="card-image">
+                    <img width="600" height="500" src="https://pic1.xuehuaimg.com/proxy/https://picsum.photos/seed/600/500?blur=5" class="responsive-img wp-post-image" loading="lazy"  sizes="(max-width: 305px) 100vw, 305px">
+                    <span class="card-title" id="channelTitleSpan" style=" background-color: rgba(0,0,0,0)" >
+                                <span style="font-size: 64px;line-height: 240px;">抓到你了！
+                                    <br>Catch you！
+                                </span>
+                            </span>
+                </div>
+                <div class="card-stacked">
+                    <div class="card-content center">
+                        <div class="section">
+                            <div class="col s12 l12">
+                                <div class="row section">
+                                    <h3 class="title left-align " style="font-weight: 900"><span class="red-text">·&nbsp;</span>手机号登录</h3>
+                                </div>
+                                <form method="post" id="login-form" class="horizontal section">
+                                    <div class="row">
+                                        <div class="input-field col s8 inline">
+                                            <i class="material-icons prefix">local_phone</i>
+                                            <input id="PhoneNumber" type="text"  class="validate" name="PhoneNumber" value="">
+                                            <label for="PhoneNumber">手机号码</label>
+                                        </div>
+                                        <div class="col s4">
+                                            <a class="btn-large blue light-2" id="getVerifyCodeBtn">获取验证码</a>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="input-field col s12">
+                                            <i class="material-icons prefix">vpn_key</i>
+                                            <input id="VerifyCode" type="password"  class="VerifyCode" name="VerifyCode" value="">
+                                            <label for="VerifyCode">验证码</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="row">
+                                        <div class="right-align">
+                                            <a href="/">账号密码登录</a>
+                                        </div>
+                                    </div>
+                                    <div class="section row">
+                                        <div class="center">
+                                            <input name="_csrf" type="hidden" value="93edbebc-aa90-4b8c-b372-28f922a9a9e6"/>
+                                            <button class="btn-large waves-effect waves-light pulse" type="button" name="action"  id="login">登录
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="center">
+                                            <a href="/register">没有账号？去注册</a>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--结束-->
+</div>
+<script color="0,0,0" opacity="0.5" count="99" src="https://cdn.bootcss.com/canvas-nest.js/1.0.1/canvas-nest.js" type="text/javascript" charset="utf-8"></script>
+</body>
+<script>
+    let fingerprint =  new Fingerprint().get();
+    $("#getVerifyCodeBtn").click(function () {
+        let phoneNum = $("#PhoneNumber").val()
+        //TODO:正则判断手机号
+        if(phoneNum.length < 1){
+            alert("请输入正确的电话号码！")
+            return;
+        }
+        let getVerifyCode = {
+            PhoneNumber: phoneNum,
+            Environment: {
+                DeviceID: fingerprint
+            }
+        }
+        getVerifyCode = JSON.stringify(getVerifyCode)
+        console.log(getVerifyCode)
+        //获取验证码
+        $.ajax({
+            url: "/getVCode",
+            type: "post",
+            dataType: "json",
+            contentType: "application/json",
+            data : getVerifyCode,
+            success:function (res){
+                alert("验证码发送成功!")
+            },
+            error: function (res){
+                alert("验证码发送失败！")
+            }
+        })
+    })
+
+
+    //登录按钮
+    $("#login").click(function (){
+        let loginData = {
+            "PhoneNumber": $("#PhoneNumber").val(),
+            "VerifyCode": $("#VerifyCode").val(),
+            "Environment": {
+                "DeviceID" : fingerprint,
+            }
+        };
+        let dataJson = JSON.stringify(loginData);
+        console.log(dataJson)
+        $.ajax({
+            url: '/login_phone',
+            type: 'post',
+            contentType: 'application/json',
+            data: dataJson,
+            dataType : 'json',
+            success:function (res){
+                console.log(res);
+            },
+            error: function (res){
+                console.log(res);
+            }
+        })
+    });
+
+</script>
+</html>

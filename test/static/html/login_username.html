@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>login_username</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/me.css" type="text/css">
+    <link rel="stylesheet" href="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/css/materialize.min.css" type="text/css">
+    <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/jquery.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/materialize.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs/v0.5.1/fingerprint.min.js"></script>
+    <script src="http://static.runoob.com/assets/jquery-validation-1.14.0/dist/jquery.validate.min.js"></script>
+</head>
+<body class="bg">
+    <!--nav开始-->
+    <nav>
+        <div class="nav-wrapper teal light-2">
+            <a href="#" class="brand-logo center">抓到你了</a>
+        </div>
+    </nav>
+    <!--nav结束-->
+
+        <!--主体开始-->
+        <div class="container login-container" style="flex: 1 0 auto; width: 90%">
+            <!--开始-->
+            <div class="row section ">
+                <div class="col s12 l12">
+                    <div class="card horizontal large" style="height: 600px; background-color: rgba(255,255,255,0.5)" >
+                        <div class="card-image">
+                            <img width="600" height="500" src="https://pic1.xuehuaimg.com/proxy/https://picsum.photos/seed/600/500?blur=5" class="responsive-img wp-post-image" loading="lazy"  sizes="(max-width: 305px) 100vw, 305px">
+                            <span class="card-title" id="channelTitleSpan" style=" background-color: rgba(0,0,0,0)" >
+                                    <span style="font-size: 64px;line-height: 240px;">抓到你了！
+                                        <br>Catch you！
+                                    </span>
+                                </span>
+                        </div>
+                        <div class="card-stacked">
+                            <div class="card-content center">
+                                <div class="section">
+                                    <div class="col s12 l12">
+                                        <div class="row section">
+                                            <h3 class="title left-align " style="font-weight: 900"><span class="red-text">·&nbsp;</span>登录</h3>
+                                        </div>
+                                        <form method="post" id="login-form" class="horizontal section">
+                                            <div class="row">
+                                                <div class="input-field col s12">
+                                                    <i class="material-icons prefix">account_circle</i>
+                                                    <input id="UserName" type="text"  class="validate" name="UserName" value="">
+                                                    <label for="UserName" >账号</label>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="input-field col s12">
+                                                    <i class="material-icons prefix">vpn_key</i>
+                                                    <input id="Password" type="password"  class="validate" name="Password" value="">
+                                                    <label for="Password">密码</label>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="right-align">
+                                                    <a href="/login_phone">使用手机号登录</a>
+                                                </div>
+                                            </div>
+                                            <div class="section row">
+                                                <div class="center">
+                                                    <input name="_csrf" type="hidden" value="93edbebc-aa90-4b8c-b372-28f922a9a9e6"/>
+                                                    <button class="btn-large waves-effect waves-light pulse" type="button" name="action"  id="login">登录
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="center">
+                                                    <a href="/register">没有账号？去注册</a>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--结束-->
+        </div>
+
+    <script color="0,0,0" opacity="0.5" count="99" src="https://cdn.bootcss.com/canvas-nest.js/1.0.1/canvas-nest.js" type="text/javascript" charset="utf-8"></script>
+</body>
+<script>
+    $().ready(function () {
+        $("#login-form").validate({
+            errorPlacement: function(error, element) {
+                // Append error within linked label
+                $( element )
+                    .closest( "form" )
+                    .find( "label[for='" + element.attr( "id" ) + "']" )
+                    .append(" ")
+                    .append( error );
+            },
+            errorElement: "span",
+            rules:{
+                UserName:{
+                    required: true,
+                    minlength: 5,
+                    maxlength : 20
+                },
+                Password: {
+                    required: true,
+                    minlength: 5,
+                    maxlength: 20
+                }
+            },
+            messages:{
+                UserName: {
+                    required: "用户名不能为空！",
+                    maxlength: "用户名必须在5-16位！",
+                    minlength: "用户名必须在5-16位！",
+                },
+                Password: {
+                    required: "密码不能为空！",
+                    maxlength:"密码必须在5-16位！",
+                    minlength:"密码用户名必须在5-16位！",
+
+                }
+            }
+        })
+    });
+    let fingerprint =  new Fingerprint().get();
+    $("#login").click(function (){
+
+        let loginData = {
+            "UserName": $("#UserName").val(),
+            "Password": $("#Password").val(),
+            "Environment": {
+                "DeviceID" : fingerprint,
+            }
+        };
+        let dataJson = JSON.stringify(loginData);
+        // console.log(dataJson)
+        $.ajax({
+            url: '/',
+            type: 'post',
+            contentType: 'application/json',
+            data: dataJson,
+            dataType : 'json',
+            //处理成功登录请求
+            success:function (res){
+                console.log("登录成功！")
+                window.location.replace("/index");
+            },
+            error: function (res){
+                M.toast({
+                    html : res.responseJSON.msg,
+                    classes: "rounded red"
+                })
+            }
+        })
+    });
+
+</script>
+</html>
