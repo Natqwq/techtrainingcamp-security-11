@@ -31,8 +31,8 @@ func InitLimiter(r rate.Limit, b int){
 }
 
 
-//AddID创建了一个新的速率限制器，并将其添加到ips映射中，
-//使用deviceid作为密钥
+//AddID创建了一个新的速率限制器，并将其添加到ids映射中，
+//使用deviceid作为主键
 func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -48,7 +48,7 @@ func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 }
 
 //GetLimiter返回所提供的IP地址的速率限制器
-//否则AddIP将地址添加到映射中
+//否则AddID将id添加到映射中
 func (l *Limiter) GetLimiter(id string, ip string, now string) *rate.Limiter {
 	l.mu.Lock()
 	limiter, exists := l.ids[id]
@@ -71,7 +71,7 @@ func spy(id string, ip string, now string) (int,int){
 	if !rc.init {
 		InitLimiter(1, 5)
 	}
-	if id=="" {
+	if id=="" {//如果没有获取到ID则使用ip代替
 		id=ip
 	}
 	limiter := rc.GetLimiter(id,ip,now)
