@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	_ "gorm.io/gorm"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -75,24 +76,33 @@ func main() {
 
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login_username.html", nil)
-		ip, _ := c.RemoteIP()
-		fmt.Print(ip)
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 	}) //用户名登录的get实现
 
 	r.GET("/login_phone", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login_phone.html", nil)
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 	}) //手机号登录的get实现
 
 	r.GET("/index", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 	}) //主页的get实现
 
 	r.GET("/register", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "register.html", nil)
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 	}) //注册界面的get实现
 
 	/*TODO：以下为简易版本，后面需要接入风控！*/
 	r.POST("/getVCode", func(c *gin.Context) {
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+
 		var checkVcode CheckVcode
 		c.ShouldBindJSON(&checkVcode)
 		code := create()                  //获得随机验证码
@@ -105,6 +115,8 @@ func main() {
 	})
 
 	r.POST("/", func(c *gin.Context) {
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应实现用户名密码比对，并提取对应电话号码
@@ -149,6 +161,8 @@ func main() {
 	}) //用户名登录的post提交处理
 
 	r.POST("/login_phone", func(c *gin.Context) {
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应实现电话号码和验证码比对，并提取对应用户名
@@ -179,6 +193,8 @@ func main() {
 	}) //手机号登录的表单处理
 
 	r.POST("/register", func(c *gin.Context) {
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应当实现对新用户信息的存储
@@ -206,6 +222,9 @@ func main() {
 	}) //注册的表单处理
 
 	r.POST("/logout", func(c *gin.Context) {
+		cookie, _ := c.Cookie("DeviceID")
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+
 		var json Post
 		//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
 		c.ShouldBindJSON(&json)
@@ -230,4 +249,5 @@ func main() {
 	}) //注册的表单处理
 
 	r.Run(":8080")
+
 }
