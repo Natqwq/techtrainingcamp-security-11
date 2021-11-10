@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/gomodule/redigo/redis"
 	"golang.org/x/time/rate"
+	"strconv"
 	"sync"
+	"time"
 )
 
 //RateLimiter
@@ -15,14 +17,24 @@ type Limiter struct {
 	r   rate.Limit
 	b   int
 	normFreqChan chan int
+	fmt string
 	init bool
 }
+
+func B2S(bs []uint8) string {
+	ba := []byte{}
+	for _, b := range bs {
+		ba = append(ba, byte(b))
+	}
+	return string(ba)
+}//byte数组转为String
 
 var rc Limiter
 func InitLimiter(r rate.Limit, b int){
 	rc.normFreqChan,rc.mu = make(chan int,100), &sync.RWMutex{}
 	rc.ids, rc.init = make(map[string]*rate.Limiter), true
 	rc.cnt,rc.err = redis.Dial("tcp","127.0.0.1:6379")
+	rc.fmt = time.RFC3339Nano
 	rc.r, rc.b = r, b
 	if rc.err != nil {
 		panic(rc.err)
@@ -31,58 +43,64 @@ func InitLimiter(r rate.Limit, b int){
 }
 
 
-//AddID创建了一个新的速率限制器，并将其添加到ids映射中，
-//使用deviceid作为主键
+//AddID创建了一个新的速率限制器，并将其添加到ips映射中，
+//使用deviceid作为密钥
 func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	limiter := rate.NewLimiter(l.r, l.b)
 	// l.ids[id] = limiter
-	_, err := rc.cnt.Do("HSET",id,"ip",ip,"time",now,"normFreq",0,"tleFreq",0)
-	_, err = rc.cnt.Do("EXPIRE", id, 3600)
-	rc.normFreqChan<-0
-	if err != nil {
-		return nil
-	}//插入记录，设置过期时间为1个小时，norm_freq表示一小时内访问次数，tle_freq表示一小时内被拒绝的访问次数
+	_, _ = rc.cnt.Do("HSET", id, "ip", ip, "bgTime", now, "normFreq", 1, "tleFreq", 0)
+	_, _ = rc.cnt.Do("EXPIRE", id, 60)
+	rc.normFreqChan<-1
+	//插入记录，设置过期时间为1个小时，norm_freq表示一小时内访问次数，tle_freq表示一小时内被拒绝的访问次数
 	return limiter
 }
 
 //GetLimiter返回所提供的IP地址的速率限制器
-//否则AddID将id添加到映射中
+//否则AddIP将地址添加到映射中
 func (l *Limiter) GetLimiter(id string, ip string, now string) *rate.Limiter {
 	l.mu.Lock()
 	limiter, exists := l.ids[id]
 	if !exists {
 		l.mu.Unlock()
-		return l.AddID(id, ip, now)
+		l.ids[id] = l.AddID(id, ip, now)
+		limiter, _ = l.ids[id]
 	}else {
-		normFreq, err := rc.cnt.Do("HINCRBY",id, "normFreq",1)
-		_, err = rc.cnt.Do("EXPIRE", id, 3600)
-		if err != nil {
-			return nil
-		}//普通访问计数器加一
-		rc.normFreqChan<-normFreq.(int)
+		normFreq, _ := rc.cnt.Do("HINCRBY",id, "normFreq",1)
+		_, _ = rc.cnt.Do("EXPIRE", id, 60) //普通访问计数器加一
+		rc.normFreqChan<-int(normFreq.(int64))
 		l.mu.Unlock()
-		return limiter
 	}
+	return limiter
 }
 
-func spy(id string, ip string, now string) (int,int){
+func spy(id string, ip string, now string, method string) (float64,int,int){
 	if !rc.init {
 		InitLimiter(1, 5)
 	}
-	if id=="" {//如果没有获取到ID则使用ip代替
+	if id=="" {
 		id=ip
+	}
+	if method=="GET" {
+		_, _ = rc.cnt.Do("SELECT", 0)
+	}else{
+		_, _ = rc.cnt.Do("SELECT", 1)
 	}
 	limiter := rc.GetLimiter(id,ip,now)
 	normFreq := <-rc.normFreqChan
+	bgTime, _ := rc.cnt.Do("HGET",id, "bgTime")
+	bgTime = B2S(bgTime.([]uint8))
+	bgTime_, _ := strconv.ParseInt(bgTime.(string), 10, 64)
+	nowTime, _ := strconv.ParseInt(now, 10, 64)
+	avgFreq := 1.0
+	if nowTime!=bgTime_ {
+		avgFreq = float64(normFreq) / (float64(nowTime-bgTime_) / 1e9)
+	}//防止第一次访问时除以0
 	if limiter.Allow(){
-		return normFreq,-1
+		return avgFreq,normFreq,-1
 	}else {
-		tleFreq, err := rc.cnt.Do("HINCRBY", id, "tleFreq", 1)
-		if err != nil {
-			return -1, -1
-		}
-		return normFreq,tleFreq.(int)
+		tleFreq, _ := rc.cnt.Do("HINCRBY", id, "tleFreq", 1)
+		return avgFreq,normFreq,tleFreq.(int)
 	}
-}//监视每个用户的操作频次
+}//监视每个设备的的Get操作频次
