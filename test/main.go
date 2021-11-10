@@ -214,7 +214,8 @@ func main() {
 		fmt.Print(logout)
 		if logout == "1" {
 			//登出操作，更新数据库中对应设备的登出时间
-			db.Where("ip = ?",c.ClientIP()).UpdateColumns(Device{Logouttime: time.Now()})
+			deviceId,_:= c.Cookie("DeviceID")
+			db.Where("deviceid = ?",deviceId).UpdateColumns(Device{Logouttime: time.Now()})
 		}
 		if logout == "2" {
 			//注销操作，删除数据库中账户
