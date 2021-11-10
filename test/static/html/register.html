@@ -9,6 +9,8 @@
     <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/materialize.min.js" charset="UTF-8"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs/v0.5.1/fingerprint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/validate-js/2.0.1/validate.min.js" integrity="sha512-8GLIg5ayTvD6F9ML/cSRMD19nHqaLPWxISikfc5hsMJyX7Pm+IIbHlhBDY2slGisYLBqiVNVll+71CYDD5RBqA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script src="static/js/myInit.js" type="text/javascript"></script>
     <style>
         body {
             background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/assessment/background.png") no-repeat center;
@@ -64,8 +66,9 @@
                         <div class="card-image">
                             <img height="300px" width="1500px" src="https://pic1.xuehuaimg.com/proxy/https://picsum.photos/seed/picsum/325/200?blur=4"  loading="lazy" >
                             <span class="card-title" id="channelTitleSpan" style=" background-color: rgba(0,0,0,0)" >
-                                        <span style="font-size: 64px;line-height: 240px;">注册
-                                        </span>
+                                    <span style="font-size: 64px;line-height: 240px;">
+                                        注册
+                                    </span>
                             </span>
                         </div>
                         <div class="card-content" >
@@ -133,14 +136,27 @@
     <script color="0,0,0" opacity="0.5" count="99" src="https://cdn.bootcss.com/canvas-nest.js/1.0.1/canvas-nest.js" type="text/javascript" charset="utf-8"></script>
 </body>
 <script>
-    let fingerprint =  new Fingerprint().get();
-
+    myInit();
     $("#getVerifyCodeBtn").click(function () {
         let phoneNum = $("#PhoneNumber").val()
         //TODO:正则判断手机号
         if(phoneNum.length < 1){
             alert("请输入正确的电话号码！")
             return;
+        }
+        //10秒定时器
+        var count = 10;
+        var countdown = setInterval(CountDown, 1000);
+        function CountDown() {
+            $("#getVerifyCodeBtn").attr("disabled", true);
+            $("#getVerifyCodeBtn").text("请" + count + "秒后再试！");
+
+            if (count == 0) {
+                $("#getVerifyCodeBtn").val("点击我").removeAttr("disabled");
+                $("#getVerifyCodeBtn").text("发送验证码");
+                clearInterval(countdown);
+            }
+            count--;
         }
         let getVerifyCode = {
             PhoneNumber: phoneNum,
@@ -172,7 +188,6 @@
             }
         })
     })
-
 
     //注册按钮
     $("#register").click(function (){
