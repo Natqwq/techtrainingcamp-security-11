@@ -42,6 +42,7 @@ func saveVcode(phone string, code string) bool {
 	checkVcode.Vcode = code
 	checkVcode.Phone = phone
 	checkVcode.Create = strconv.FormatInt(time.Now().Unix(), 10)
+	checkVcode.Create_at = time.Now()
 	fmt.Println(checkVcode)
 	db.Create(&checkVcode)
 	return true

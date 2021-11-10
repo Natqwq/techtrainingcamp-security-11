@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	_ "gorm.io/gorm"
 	"net/http"
+	"time"
 )
 
 type User struct {
@@ -22,20 +23,34 @@ type Post struct {
 	Password string `form:"password" json:"Password" binding:"required"`
 	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
 	Vcode    string `form:"vcode" json:"VerifyCode" binding:"required"`
+	EnvironmentBase Environment `form:"environment" json:"Environment" binding:"required"`
+	Logout   string `form:"logout" json:"logout" binding:"required"`
 }
 type CheckVcode struct {
 	Phone  string `form:"phone" json:"PhoneNumber" binding:"required"`
 	Vcode  string
 	Create string
+	Create_at time.Time
 }
-
+type Device struct {
+	Username string
+	Deviceid string
+	Ip string
+	Logintime time.Time
+	Logouttime time.Time
+}
+type Environment struct{
+	Deviceid string
+}
 func (User) TableName() string {
 	return "user"
 }
 func (CheckVcode) TableName() string {
 	return "chk"
 }
-
+func (Device) TableName() string{
+	return "device"
+}
 //修改对应的用户名、密码和数据库，格式如下：
 //dsn = "user:password@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local"
 const dsn = "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
@@ -46,7 +61,7 @@ func main() {
 	c3 := make(chan string, 100)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
-	db.AutoMigrate(&User{}, &CheckVcode{}) //如果数据库不存在表，则自动创表
+	db.AutoMigrate(&User{}, &CheckVcode{},&Device{}) //如果数据库不存在表，则自动创表
 
 	if err != nil {
 		fmt.Println(err)
@@ -106,6 +121,27 @@ func main() {
 			})
 			return
 		}
+		var device Device
+		device.Username ,device.Logintime= json.Username,time.Now()
+		device.Deviceid = json.EnvironmentBase.Deviceid
+		device.Ip = c.ClientIP()
+		device.Logouttime = time.Now().Add(time.Minute*1440)
+		var nowDevice Device
+		db.Where("username = ?",device.Username).First(&nowDevice)
+		if nowDevice.Username != device.Username || nowDevice.Logouttime.Sub(device.Logintime)<0 {
+			db.Create(&device)
+		} else {
+			db.Where("username = ?",device.Username).Updates(Device{
+				Username: device.Username,
+				Ip: device.Ip,
+				Deviceid: device.Deviceid,
+				Logintime: device.Logintime,
+				Logouttime: device.Logouttime,
+			})
+		}
+		fmt.Println("device=",device)
+		fmt.Println("ip= ",device.Ip)
+		fmt.Println("deviceid= ",device.Deviceid)
 		c.JSON(200, gin.H{
 			"success": true,
 			"msg":     "登录成功！",
@@ -126,6 +162,7 @@ func main() {
 				"msg":     "手机号未注册!",
 			})
 			return
+
 		}
 		//6位随机验证码生成
 		if !checkVcode(json) {
@@ -172,10 +209,15 @@ func main() {
 		var json Post
 		//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
 		c.ShouldBindJSON(&json)
-		logout := "2"
+		//还未实现登出逻辑
+		logout := json.Logout
 		fmt.Print(logout)
-		//logout == "1"的登出逻辑应该不用实现？
+		if logout == "1" {
+			//登出操作，更新数据库中对应设备的登出时间
+			db.Where("ip = ?",c.ClientIP()).UpdateColumns(Device{Logouttime: time.Now()})
+		}
 		if logout == "2" {
+			//注销操作，删除数据库中账户
 			if sign_username(json.Username, json.Password) {
 				delete(json.Phone)
 				c.JSON(200, gin.H{
