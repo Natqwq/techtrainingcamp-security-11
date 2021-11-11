@@ -33,7 +33,8 @@ var rc Limiter
 func InitLimiter(r rate.Limit, b int){
 	rc.normFreqChan,rc.mu = make(chan int,100), &sync.RWMutex{}
 	rc.ids, rc.init = make(map[string]*rate.Limiter), true
-	rc.cnt,rc.err = redis.Dial("tcp","127.0.0.1:6379")
+	rc.cnt,rc.err = redis.Dial("tcp","222.20.104.39:6379")
+	_, rc.err = rc.cnt.Do("AUTH", "guest", "abab")
 	rc.fmt = time.RFC3339Nano
 	rc.r, rc.b = r, b
 	if rc.err != nil {
@@ -47,13 +48,13 @@ func InitLimiter(r rate.Limit, b int){
 //使用deviceid作为密钥
 func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 	l.mu.Lock()
-	defer l.mu.Unlock()
 	limiter := rate.NewLimiter(l.r, l.b)
 	// l.ids[id] = limiter
-	_, _ = rc.cnt.Do("HSET", id, "ip", ip, "bgTime", now, "normFreq", 1, "tleFreq", 0)
-	_, _ = rc.cnt.Do("EXPIRE", id, 60)
-	rc.normFreqChan<-1
+	_, l.err = l.cnt.Do("HSET", id, "ip", ip, "bgTime", now, "normFreq", 1, "tleFreq", 0)
+	_, l.err = l.cnt.Do("EXPIRE", id, 60)
+	l.normFreqChan<-1
 	//插入记录，设置过期时间为1个小时，norm_freq表示一小时内访问次数，tle_freq表示一小时内被拒绝的访问次数
+	l.mu.Unlock()
 	return limiter
 }
 
@@ -67,9 +68,9 @@ func (l *Limiter) GetLimiter(id string, ip string, now string) *rate.Limiter {
 		l.ids[id] = l.AddID(id, ip, now)
 		limiter, _ = l.ids[id]
 	}else {
-		normFreq, _ := rc.cnt.Do("HINCRBY",id, "normFreq",1)
-		_, _ = rc.cnt.Do("EXPIRE", id, 60) //普通访问计数器加一
-		rc.normFreqChan<-int(normFreq.(int64))
+		normFreq, _ := l.cnt.Do("HINCRBY",id, "normFreq",1)
+		_, l.err = l.cnt.Do("EXPIRE", id, 60) //普通访问计数器加一
+		l.normFreqChan<-int(normFreq.(int64))
 		l.mu.Unlock()
 	}
 	return limiter
@@ -83,9 +84,9 @@ func spy(id string, ip string, now string, method string) (float64,int,int){
 		id=ip
 	}
 	if method=="GET" {
-		_, _ = rc.cnt.Do("SELECT", 0)
+		_, rc.err = rc.cnt.Do("SELECT", 0)
 	}else{
-		_, _ = rc.cnt.Do("SELECT", 1)
+		_, rc.err = rc.cnt.Do("SELECT", 1)
 	}
 	limiter := rc.GetLimiter(id,ip,now)
 	normFreq := <-rc.normFreqChan
