@@ -10,7 +10,8 @@ import (
 
 //RateLimiter
 type Limiter struct {
-	ids map[string]*rate.Limiter
+	idsGet map[string]*rate.Limiter
+	idsPost map[string]*rate.Limiter
 	cnt redis.Conn
 	err error
 	mu  *sync.RWMutex
@@ -22,7 +23,7 @@ type Limiter struct {
 }
 
 func B2S(bs []uint8) string {
-	ba := []byte{}
+	var ba []byte
 	for _, b := range bs {
 		ba = append(ba, byte(b))
 	}
@@ -32,9 +33,10 @@ func B2S(bs []uint8) string {
 var rc Limiter
 func InitLimiter(r rate.Limit, b int){
 	rc.normFreqChan,rc.mu = make(chan int,100), &sync.RWMutex{}
-	rc.ids, rc.init = make(map[string]*rate.Limiter), true
+	rc.idsGet, rc.idsPost, rc.init = make(map[string]*rate.Limiter),make(map[string]*rate.Limiter), true
 	rc.cnt,rc.err = redis.Dial("tcp","222.20.104.39:6379")
 	_, rc.err = rc.cnt.Do("AUTH", "guest", "abab")
+	_, rc.err = rc.cnt.Do("FLUSHALL")
 	rc.fmt = time.RFC3339Nano
 	rc.r, rc.b = r, b
 	if rc.err != nil {
@@ -42,7 +44,6 @@ func InitLimiter(r rate.Limit, b int){
 	}
 	// defer rc.cnt.Close()
 }
-
 
 //AddID创建了一个新的速率限制器，并将其添加到ips映射中，
 //使用deviceid作为密钥
@@ -58,18 +59,29 @@ func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 	return limiter
 }
 
-//GetLimiter返回所提供的IP地址的速率限制器
-//否则AddIP将地址添加到映射中
-func (l *Limiter) GetLimiter(id string, ip string, now string) *rate.Limiter {
+// GetLimiter返回所提供的IP地址的速率限制器
+// 否则AddIP将地址添加到映射中
+func (l *Limiter) GetLimiter(id string, ip string, now string, method string) *rate.Limiter {
 	l.mu.Lock()
-	limiter, exists := l.ids[id]
-	if !exists {
+	var limiter *rate.Limiter
+	exist, _ := l.cnt.Do("EXISTS", id)
+	if exist.(int64)==0 {
 		l.mu.Unlock()
-		l.ids[id] = l.AddID(id, ip, now)
-		limiter, _ = l.ids[id]
+		if method=="GET" {
+			l.idsGet[id] = l.AddID(id, ip, now)
+			limiter, _ = l.idsGet[id]
+		}else{
+			l.idsPost[id] = l.AddID(id,ip,now)
+			limiter, _ = l.idsPost[id]
+		}
 	}else {
 		normFreq, _ := l.cnt.Do("HINCRBY",id, "normFreq",1)
 		_, l.err = l.cnt.Do("EXPIRE", id, 60) //普通访问计数器加一
+		if method=="GET"{
+			limiter = l.idsGet[id]
+		}else{
+			limiter = l.idsPost[id]
+		}
 		l.normFreqChan<-int(normFreq.(int64))
 		l.mu.Unlock()
 	}
@@ -88,7 +100,7 @@ func spy(id string, ip string, now string, method string) (float64,int,int){
 	}else{
 		_, rc.err = rc.cnt.Do("SELECT", 1)
 	}
-	limiter := rc.GetLimiter(id,ip,now)
+	limiter := rc.GetLimiter(id,ip,now,method)
 	normFreq := <-rc.normFreqChan
 	bgTime, _ := rc.cnt.Do("HGET",id, "bgTime")
 	bgTime = B2S(bgTime.([]uint8))
@@ -104,4 +116,4 @@ func spy(id string, ip string, now string, method string) (float64,int,int){
 		tleFreq, _ := rc.cnt.Do("HINCRBY", id, "tleFreq", 1)
 		return avgFreq,normFreq,tleFreq.(int)
 	}
-}//监视每个设备的的Get操作频次
+}//监视每个设备的的Get和Post操作频次
