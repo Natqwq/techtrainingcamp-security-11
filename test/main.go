@@ -12,49 +12,58 @@ import (
 	"time"
 )
 
+//用户表
 type User struct {
 	Username string `form:"user" json:"UserName" binding:"required"`
 	Password string `form:"password" json:"Password" binding:"required"`
 	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
 }
 
-//用于接收json的结构体
+//post请求体
 type Post struct {
-	Username string `form:"user" json:"UserName" binding:"required"`
-	Password string `form:"password" json:"Password" binding:"required"`
-	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
-	Vcode    string `form:"vcode" json:"VerifyCode" binding:"required"`
+	Username        string      `form:"user" json:"UserName" binding:"required"`
+	Password        string      `form:"password" json:"Password" binding:"required"`
+	Phone           string      `form:"phone" json:"PhoneNumber" binding:"required"`
+	Vcode           string      `form:"vcode" json:"VerifyCode" binding:"required"`
 	EnvironmentBase Environment `form:"environment" json:"Environment" binding:"required"`
-	Logout   string `form:"logout" json:"logout" binding:"required"`
+	Logout          string      `form:"logout" json:"Logout" binding:"required"`
 }
+
+//验证码
 type CheckVcode struct {
-	Phone  string `form:"phone" json:"PhoneNumber" binding:"required"`
-	Vcode  string
-	Create string
+	Phone     string `form:"phone" json:"PhoneNumber" binding:"required"`
+	Vcode     string
+	Create    string
 	Create_at time.Time
 }
+
+//用户最近一次登录
 type Device struct {
-	Username string
-	Deviceid string
-	Ip string
-	Logintime time.Time
+	Username   string
+	Deviceid   string
+	Ip         string
+	Logintime  time.Time
 	Logouttime time.Time
 }
-type Environment struct{
+
+//用户环境
+type Environment struct {
 	Deviceid string
 }
+
 func (User) TableName() string {
 	return "user"
 }
 func (CheckVcode) TableName() string {
 	return "chk"
 }
-func (Device) TableName() string{
+func (Device) TableName() string {
 	return "device"
 }
+
 //修改对应的用户名、密码和数据库，格式如下：
 //dsn = "user:password@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local"
-const dsn = "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
+const dsn = "catchyou:123456@tcp(49.234.79.216:3306)/catchYou?charset=utf8mb4&parseTime=True&loc=Local"
 
 func main() {
 	c1 := make(chan string, 100)
@@ -62,7 +71,8 @@ func main() {
 	c3 := make(chan string, 100)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
-	db.AutoMigrate(&User{}, &CheckVcode{},&Device{}) //如果数据库不存在表，则自动创表
+	//如果数据库不存在表，则自动创表
+	db.AutoMigrate(&User{}, &CheckVcode{}, &Device{})
 
 	if err != nil {
 		fmt.Println(err)
@@ -77,31 +87,30 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login_username.html", nil)
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 	}) //用户名登录的get实现
 
 	r.GET("/login_phone", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login_phone.html", nil)
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 	}) //手机号登录的get实现
 
 	r.GET("/index", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 	}) //主页的get实现
 
 	r.GET("/register", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "register.html", nil)
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 	}) //注册界面的get实现
 
-	/*TODO：以下为简易版本，后面需要接入风控！*/
 	r.POST("/getVCode", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 
 		var checkVcode CheckVcode
 		c.ShouldBindJSON(&checkVcode)
@@ -116,7 +125,7 @@ func main() {
 
 	r.POST("/", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应实现用户名密码比对，并提取对应电话号码
@@ -134,26 +143,26 @@ func main() {
 			return
 		}
 		var device Device
-		device.Username ,device.Logintime= json.Username,time.Now()
+		device.Username, device.Logintime = json.Username, time.Now()
 		device.Deviceid = json.EnvironmentBase.Deviceid
 		device.Ip = c.ClientIP()
-		device.Logouttime = time.Now().Add(time.Minute*1440)
+		device.Logouttime = time.Now().Add(time.Minute * 1440)
 		var nowDevice Device
-		db.Where("username = ?",device.Username).First(&nowDevice)
-		if nowDevice.Username != device.Username || nowDevice.Logouttime.Sub(device.Logintime)<0 {
+		db.Where("username = ?", device.Username).First(&nowDevice)
+		if nowDevice.Username != device.Username || nowDevice.Logouttime.Sub(device.Logintime) < 0 {
 			db.Create(&device)
 		} else {
-			db.Where("username = ?",device.Username).Updates(Device{
-				Username: device.Username,
-				Ip: device.Ip,
-				Deviceid: device.Deviceid,
-				Logintime: device.Logintime,
+			db.Where("username = ?", device.Username).Updates(Device{
+				Username:   device.Username,
+				Ip:         device.Ip,
+				Deviceid:   device.Deviceid,
+				Logintime:  device.Logintime,
 				Logouttime: device.Logouttime,
 			})
 		}
-		fmt.Println("device=",device)
-		fmt.Println("ip= ",device.Ip)
-		fmt.Println("deviceid= ",device.Deviceid)
+		fmt.Println("device=", device)
+		fmt.Println("ip= ", device.Ip)
+		fmt.Println("deviceid= ", device.Deviceid)
 		c.JSON(200, gin.H{
 			"success": true,
 			"msg":     "登录成功！",
@@ -162,7 +171,7 @@ func main() {
 
 	r.POST("/login_phone", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应实现电话号码和验证码比对，并提取对应用户名
@@ -182,7 +191,7 @@ func main() {
 		if !checkVcode(json) {
 			c.JSON(401, gin.H{
 				"success": false,
-				"msg":     "验证码错误，请重试!",
+				"msg":     "验证码错误或过期，请重试!",
 			})
 			return
 		}
@@ -192,9 +201,12 @@ func main() {
 		})
 	}) //手机号登录的表单处理
 
+	/*
+	* 注册请求
+	 */
 	r.POST("/register", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 		//此处需要统计用户IP和ID并返回此用户操作频次
 		//此处需要根据用户操作情况决定是否进行安全防护
 		//此处应当实现对新用户信息的存储
@@ -210,33 +222,46 @@ func main() {
 		if user.Username == json.Username {
 			c.JSON(401, gin.H{
 				"success": false,
-				"msg":     "用户已注册!",
+				"msg":     "该用户名已注册!",
 			})
 			return
+		} else if !checkVcode(json) {
+			c.JSON(401, gin.H{
+				"success": false,
+				"msg":     "验证码错误!",
+			})
+			return
+		} else {
+			save(json.Username, json.Phone, json.Password)
+			println("保存用户成功")
+			c.JSON(200, gin.H{
+				"success": true,
+				"msg":     "注册成功!",
+			})
 		}
-		save(json.Username, json.Phone, json.Password)
-		c.JSON(200, gin.H{
-			"success": true,
-			"msg":     "注册成功!",
-		})
-	}) //注册的表单处理
+	})
 
+	/**
+	* 登出请求
+	**/
 	r.POST("/logout", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
-		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(),10), c.Request.Method))
-
+		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 		var json Post
 		//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
 		c.ShouldBindJSON(&json)
-		//还未实现登出逻辑
-		logout := json.Logout
-		fmt.Print(logout)
-		if logout == "1" {
+		logoutMethod := json.Logout
+
+		if logoutMethod == "1" {
 			//登出操作，更新数据库中对应设备的登出时间
-			deviceId,_:= c.Cookie("DeviceID")
-			db.Where("deviceid = ?",deviceId).UpdateColumns(Device{Logouttime: time.Now()})
+			deviceId, _ := c.Cookie("DeviceID")
+			db.Where("deviceid = ?", deviceId).UpdateColumns(Device{Logouttime: time.Now()})
+			c.JSON(200, gin.H{
+				"success": 200,
+				"msg":     "登出成功!",
+			})
 		}
-		if logout == "2" {
+		if logoutMethod == "2" {
 			//注销操作，删除数据库中账户
 			if sign_username(json.Username, json.Password) {
 				delete(json.Phone)
@@ -246,7 +271,7 @@ func main() {
 				})
 			}
 		}
-	}) //注册的表单处理
+	})
 
 	r.Run(":8080")
 

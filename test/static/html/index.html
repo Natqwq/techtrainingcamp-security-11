@@ -17,19 +17,47 @@
         <div class="container login-container"></div>
             <div class="center">
                     <div>
-                        <a type="submit"   href="/logout" value="1" class="waves-effect waves-light btn-large">登出</a>
+                        <button  value="1" class="waves-effect waves-light btn-large" id="logout" onclick = "logout(this.value)">登出</button>
                         </br>
                         </br>
-                        <a type="submit" id="logout"  href="/logout" value="2"class="waves-effect waves-light btn-large">注销</a>
+<!--                        <a  value="2" class="waves-effect waves-light btn-large" onclick = "logout(this.value)">注销</a>-->
                     </div>
             </div>
-
     </body>
     <script>
         myInit();
-        $("#logout").click(function (){
-
-
-        })
+        function logout(logoutMethod){
+            $("#logout").attr("disabled",true);
+            let formData = {
+                Environment: {
+                    DeviceID: fingerprint
+                },
+                Logout:  logoutMethod + ""
+            }
+            formData = JSON.stringify(formData);
+            $.ajax({
+                url : "/logout",
+                type: "post",
+                dataType: "json",
+                contentType: "application/json",
+                data : formData,
+                success : function (res) {
+                    alert("登出成功！");
+                    M.toast({
+                        html : "res.msg",
+                        classes : "rounded green"
+                    })
+                    window.location.replace("/");
+                },
+                error : function (res){
+                    M.toast({
+                        html : "res.msg",
+                        classes : "rounded red"
+                    })
+                    window.location.href("/login");
+                }
+            })
+            $("#logout").attr("disabled",false);
+        }
     </script>
 </html>

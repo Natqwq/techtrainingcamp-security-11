@@ -76,21 +76,21 @@
                                 <div class="row">
                                     <div class="input-field col s12">
                                         <i class="material-icons prefix">perm_identity</i>
-                                        <input id="UserName" type="text"  class="validate" name="UserName" value="">
+                                        <input id="UserName" type="text"  class="validate" name="UserName" value="" autocomplete="off">
                                         <label for="UserName">账号</label>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="input-field col s12">
                                         <i class="material-icons prefix">vpn_key</i>
-                                        <input id="Password" type="text"  class="validate" name="Password" value="">
+                                        <input id="Password" type="password"  class="validate" name="Password" value="">
                                         <label for="Password">密码</label>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="input-field col s12">
                                         <i class="material-icons prefix">vpn_key</i>
-                                        <input id="ConfirmPassword" type="text"  class="validate" name="ConfirmPassword" value="">
+                                        <input id="ConfirmPassword" type="password"  class="validate" name="ConfirmPassword" value="">
                                         <label for="ConfirmPassword">确认密码</label>
                                     </div>
                                 </div>
@@ -107,7 +107,7 @@
                                 <div class="row">
                                     <div class="input-field col s12">
                                         <i class="material-icons prefix">verified_user</i>
-                                        <input id="VerifyCode" type="password"  class="VerifyCode" name="VerifyCode" value="">
+                                        <input id="VerifyCode" type="password"  name="VerifyCode" value=""  disabled>
                                         <label for="VerifyCode">验证码</label>
                                     </div>
                                 </div>
@@ -138,14 +138,15 @@
 <script>
     myInit();
     $("#getVerifyCodeBtn").click(function () {
+        $("#VerifyCode").attr("disabled", false);
         let phoneNum = $("#PhoneNumber").val()
         //TODO:正则判断手机号
         if(phoneNum.length < 1){
             alert("请输入正确的电话号码！")
             return;
         }
-        //10秒定时器
-        var count = 10;
+        //n秒定时器
+        var count = 30;
         var countdown = setInterval(CountDown, 1000);
         function CountDown() {
             $("#getVerifyCodeBtn").attr("disabled", true);
@@ -165,7 +166,6 @@
             }
         }
         getVerifyCode = JSON.stringify(getVerifyCode)
-        console.log(getVerifyCode)
         //获取验证码
         $.ajax({
             url: "/getVCode",
@@ -191,23 +191,42 @@
 
     //注册按钮
     $("#register").click(function (){
-        if($("#Password").val() != $("#ConfirmPassword").val()) {
+        let password = $("#Password").val();
+        let confirm = $("#ConfirmPassword").val();
+        let username = $("#UserName").val();
+        let vcode   = $("#VerifyCode").val();
+        let phone   = $("#PhoneNumber").val();
+        if(!(password.length && confirm.length && username.length && vcode.length && phone.length)){
+          M.toast({
+              html : "请填写完整！",
+              classes : "rounded red"
+          })
+        } else if(password != confirm) {
             M.toast({
                 html: "两次密码不一致！",
                 classes: "rounded red"
             })
-        }else{
+        }else if(password.length < 5 || password.length > 16){
+            M.toast({
+                html : "密码长度用户应该为5-16位！",
+                classes : "rounded red"
+            })
+        }else if(username.length < 5 || username.length > 16){
+            M.toast({
+                html : "用户名长度应该位5-16位！",
+                classes : "rounded red"
+            })
+        } else{
             let loginData = {
-                "UserName": $("#UserName").val(),
-                "Password": $("#Password").val(),
-                "PhoneNumber": $("#PhoneNumber").val(),
-                "VerifyCode": $("#VerifyCode").val(),
+                "UserName": username,
+                "Password": password,
+                "PhoneNumber": phone,
+                "VerifyCode": vcode,
                 "Environment": {
                     "DeviceID" : fingerprint,
                 }
             };
             let dataJson = JSON.stringify(loginData);
-            console.log(dataJson)
             $.ajax({
                 url: '/register',
                 type: 'post',
@@ -216,7 +235,7 @@
                 dataType : 'json',
                 success : function (res) {
                     M.toast({
-                        html : "注册成功！",
+                        html : res.msg,
                         classes : "green rounded"
                     })
                     window.location.replace("/");
@@ -224,7 +243,7 @@
                 error : function (res){
                     M.toast({
                         html: res.responseJSON.msg,
-                        classed: "green rounded"
+                        classes: "red rounded"
                     })
 
                 }
