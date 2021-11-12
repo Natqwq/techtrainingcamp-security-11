@@ -93,7 +93,7 @@ func (l *Limiter) GetLimiter(id string, ip string, now string, method string) *r
 	return limiter
 }
 
-func spy(id string, ip string, now string, method string) (float64, int, int) {
+func spy(id string, ip string, now string, method string) (*rate.Limiter, float64, int, int, bool) {
 	if !rc.init {
 		InitLimiter(rLimiter, bLimiter)
 	}
@@ -123,9 +123,10 @@ func spy(id string, ip string, now string, method string) (float64, int, int) {
 		avgFreq = float64(normFreq) / (float64(nowTime-bgTime_) / 1e9)
 	}
 	if limiter.Allow() {
-		return avgFreq, normFreq, -1
+		tleFreq, _ := rc.cnt.Do("HINCRBY", id, "tleFreq", 0)
+		return limiter, avgFreq, normFreq, int(tleFreq.(int64)), true
 	} else {
 		tleFreq, _ := rc.cnt.Do("HINCRBY", id, "tleFreq", 1)
-		return avgFreq, normFreq, int(tleFreq.(int64))
+		return limiter, avgFreq, normFreq, int(tleFreq.(int64)), false
 	}
 } //监视每个设备的的Get和Post操作频次

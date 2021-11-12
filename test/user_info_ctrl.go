@@ -60,5 +60,4 @@ func delete(phone string) {
 	var user User
 	db.Where("phone = ?", phone).First(&user)
 	db.Delete(&user)
-
 } //删除用户
