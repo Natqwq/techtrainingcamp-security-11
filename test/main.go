@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-//用户表
+// User 用户表
 type User struct {
 	Username string `form:"user" json:"UserName" binding:"required"`
 	Password string `form:"password" json:"Password" binding:"required"`
 	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
 }
 
-//post请求体
+// Post post请求体
 type Post struct {
 	Username        string      `form:"user" json:"UserName" binding:"required"`
 	Password        string      `form:"password" json:"Password" binding:"required"`
@@ -29,26 +29,26 @@ type Post struct {
 	Logout          string      `form:"logout" json:"Logout" binding:"required"`
 }
 
-//验证码
+// CheckVcode 验证码
 type CheckVcode struct {
-	Phone     string `form:"phone" json:"PhoneNumber" binding:"required"`
-	Vcode     string
-	Create    string
-	Create_at time.Time
+	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
+	Vcode    string
+	Create   string
+	CreateAt time.Time
 }
 
-//用户最近一次登录
+// Device 用户最近一次登录
 type Device struct {
 	Username   string
-	Deviceid   string
+	DeviceID   string
 	Ip         string
-	Logintime  time.Time
-	Logouttime time.Time
+	loginTime  time.Time
+	logoutTime time.Time
 }
 
-//用户环境
+// Environment 用户环境
 type Environment struct {
-	Deviceid string
+	DeviceID string
 }
 
 func (User) TableName() string {
@@ -61,15 +61,11 @@ func (Device) TableName() string {
 	return "device"
 }
 
-//修改对应的用户名、密码和数据库，格式如下：
-//dsn = "user:password@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local"
-const dsn = "catchyou:123456@tcp(49.234.79.216:3306)/catchYou?charset=utf8mb4&parseTime=True&loc=Local"
-
 func main() {
-	c1 := make(chan string, 100)
-	c2 := make(chan string, 100)
-	c3 := make(chan string, 100)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	c1 := make(chan string, chanBuf)
+	c2 := make(chan string, chanBuf)
+	c3 := make(chan string, chanBuf)
+	db, err := gorm.Open(mysql.Open(mysqlInfo), &gorm.Config{})
 
 	//如果数据库不存在表，则自动创表
 	db.AutoMigrate(&User{}, &CheckVcode{}, &Device{})
@@ -135,7 +131,7 @@ func main() {
 		c1 <- json.Username
 		c2 <- json.Password
 		print(c1, c2)
-		if !sign_username(json.Username, json.Password) {
+		if !signUsername(json.Username, json.Password) {
 			c.JSON(401, gin.H{
 				"success": false,
 				"msg":     "用户名密码不正确!",
@@ -143,26 +139,26 @@ func main() {
 			return
 		}
 		var device Device
-		device.Username, device.Logintime = json.Username, time.Now()
-		device.Deviceid = json.EnvironmentBase.Deviceid
+		device.Username, device.loginTime = json.Username, time.Now()
+		device.DeviceID = json.EnvironmentBase.DeviceID
 		device.Ip = c.ClientIP()
-		device.Logouttime = time.Now().Add(time.Minute * 1440)
+		device.logoutTime = time.Now().Add(time.Minute * 1440)
 		var nowDevice Device
 		db.Where("username = ?", device.Username).First(&nowDevice)
-		if nowDevice.Username != device.Username || nowDevice.Logouttime.Sub(device.Logintime) < 0 {
+		if nowDevice.Username != device.Username || nowDevice.logoutTime.Sub(device.loginTime) < 0 {
 			db.Create(&device)
 		} else {
 			db.Where("username = ?", device.Username).Updates(Device{
 				Username:   device.Username,
 				Ip:         device.Ip,
-				Deviceid:   device.Deviceid,
-				Logintime:  device.Logintime,
-				Logouttime: device.Logouttime,
+				DeviceID:   device.DeviceID,
+				loginTime:  device.loginTime,
+				logoutTime: device.logoutTime,
 			})
 		}
 		fmt.Println("device=", device)
 		fmt.Println("ip= ", device.Ip)
-		fmt.Println("deviceid= ", device.Deviceid)
+		fmt.Println("DeviceID= ", device.DeviceID)
 		c.JSON(200, gin.H{
 			"success": true,
 			"msg":     "登录成功！",
@@ -179,7 +175,7 @@ func main() {
 		var json Post
 		c.ShouldBindJSON(&json)
 		c3 <- json.Phone
-		if !sign_phone(json.Phone) {
+		if !signPhone(json.Phone) {
 			c.JSON(401, gin.H{
 				"success": false,
 				"msg":     "手机号未注册!",
@@ -254,8 +250,8 @@ func main() {
 
 		if logoutMethod == "1" {
 			//登出操作，更新数据库中对应设备的登出时间
-			deviceId, _ := c.Cookie("DeviceID")
-			db.Where("deviceid = ?", deviceId).UpdateColumns(Device{Logouttime: time.Now()})
+			DeviceID, _ := c.Cookie("DeviceID")
+			db.Where("DeviceID = ?", DeviceID).UpdateColumns(Device{logoutTime: time.Now()})
 			c.JSON(200, gin.H{
 				"success": 200,
 				"msg":     "登出成功!",
@@ -263,7 +259,7 @@ func main() {
 		}
 		if logoutMethod == "2" {
 			//注销操作，删除数据库中账户
-			if sign_username(json.Username, json.Password) {
+			if signUsername(json.Username, json.Password) {
 				delete(json.Phone)
 				c.JSON(200, gin.H{
 					"success": 200,

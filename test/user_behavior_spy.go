@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//RateLimiter
+// Limiter RateLimiter
 type Limiter struct {
 	idsGet       map[string]*rate.Limiter
 	idsPost      map[string]*rate.Limiter
@@ -33,10 +33,10 @@ func B2S(bs []uint8) string {
 var rc Limiter
 
 func InitLimiter(r rate.Limit, b int) {
-	rc.normFreqChan, rc.mu = make(chan int, 100), &sync.RWMutex{}
+	rc.normFreqChan, rc.mu = make(chan int, chanBuf), &sync.RWMutex{}
 	rc.idsGet, rc.idsPost, rc.init = make(map[string]*rate.Limiter), make(map[string]*rate.Limiter), true
-	rc.cnt, rc.err = redis.Dial("tcp", "49.234.79.216:6379")
-	_, rc.err = rc.cnt.Do("AUTH", "tanyongfeng13666")
+	rc.cnt, rc.err = redis.Dial("tcp", redisIP)
+	_, rc.err = rc.cnt.Do("AUTH", redisUser, redisPsd)
 	_, rc.err = rc.cnt.Do("FLUSHALL")
 	rc.fmt = time.RFC3339Nano
 	rc.r, rc.b = r, b
@@ -46,21 +46,21 @@ func InitLimiter(r rate.Limit, b int) {
 	// defer rc.cnt.Close()
 }
 
-//AddID创建了一个新的速率限制器，并将其添加到ips映射中，
+// AddID AddID创建了一个新的速率限制器，并将其添加到ips映射中，
 //使用deviceid作为密钥
 func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 	l.mu.Lock()
 	limiter := rate.NewLimiter(l.r, l.b)
 	// l.ids[id] = limiter
 	_, l.err = l.cnt.Do("HSET", id, "ip", ip, "bgTime", now, "normFreq", 1, "tleFreq", 0)
-	_, l.err = l.cnt.Do("EXPIRE", id, 60)
+	_, l.err = l.cnt.Do("EXPIRE", id, redisExpire)
 	l.normFreqChan <- 1
 	//插入记录，设置过期时间为1分钟，norm_freq表示一分钟内访问次数，tle_freq表示一分钟内被拒绝的访问次数
 	l.mu.Unlock()
 	return limiter
 }
 
-// GetLimiter返回所提供的IP地址的速率限制器.否则AddIP将地址添加到映射中
+// GetLimiter GetLimiter返回所提供的IP地址的速率限制器.否则AddIP将地址添加到映射中
 func (l *Limiter) GetLimiter(id string, ip string, now string, method string) *rate.Limiter {
 	l.mu.Lock()
 	var limiter *rate.Limiter
@@ -77,9 +77,9 @@ func (l *Limiter) GetLimiter(id string, ip string, now string, method string) *r
 			limiter, _ = l.idsPost[id]
 		}
 	} else {
-		//获取请求数， 且生命周期重置为60s
+		//获取请求数， 且生命周期重置为redisExpires
 		normFreq, _ := l.cnt.Do("HINCRBY", id, "normFreq", 1)
-		_, l.err = l.cnt.Do("EXPIRE", id, 60)
+		_, l.err = l.cnt.Do("EXPIRE", id, redisExpire)
 
 		//根据访问方法，来分配相应的限制器
 		if method == "GET" {
@@ -95,7 +95,7 @@ func (l *Limiter) GetLimiter(id string, ip string, now string, method string) *r
 
 func spy(id string, ip string, now string, method string) (float64, int, int) {
 	if !rc.init {
-		InitLimiter(1, 5)
+		InitLimiter(rLimiter, bLimiter)
 	}
 	if id == "" {
 		id = ip
