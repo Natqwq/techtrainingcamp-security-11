@@ -42,8 +42,8 @@ type Device struct {
 	Username   string
 	DeviceID   string
 	Ip         string
-	loginTime  time.Time
-	logoutTime time.Time
+	LoginTime  time.Time
+	LogoutTime time.Time
 }
 
 // Environment 用户环境
@@ -93,8 +93,14 @@ func main() {
 	}) //手机号登录的get实现
 
 	r.GET("/index", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
 		cookie, _ := c.Cookie("DeviceID")
+		var device Device
+		db.Where("device_id = ?",cookie).First(&device)
+		if cookie=="" || device.LogoutTime.Sub(time.Now()) <= 0 || device.DeviceID!= cookie {
+			c.HTML(403, "index.html", nil)
+			return
+		}
+		c.HTML(http.StatusOK, "index.html", nil)
 		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
 	}) //主页的get实现
 
@@ -139,21 +145,21 @@ func main() {
 			return
 		}
 		var device Device
-		device.Username, device.loginTime = json.Username, time.Now()
+		device.Username, device.LoginTime = json.Username, time.Now()
 		device.DeviceID = json.EnvironmentBase.DeviceID
 		device.Ip = c.ClientIP()
-		device.logoutTime = time.Now().Add(time.Minute * 1440)
+		device.LogoutTime = time.Now().Add(time.Minute * 1440)
 		var nowDevice Device
 		db.Where("username = ?", device.Username).First(&nowDevice)
-		if nowDevice.Username != device.Username || nowDevice.logoutTime.Sub(device.loginTime) < 0 {
+		if nowDevice.Username != device.Username || nowDevice.LogoutTime.Sub(device.LoginTime) < 0 {
 			db.Create(&device)
 		} else {
 			db.Where("username = ?", device.Username).Updates(Device{
 				Username:   device.Username,
 				Ip:         device.Ip,
 				DeviceID:   device.DeviceID,
-				loginTime:  device.loginTime,
-				logoutTime: device.logoutTime,
+				LoginTime:  device.LoginTime,
+				LogoutTime: device.LogoutTime,
 			})
 		}
 		fmt.Println("device=", device)
@@ -214,7 +220,6 @@ func main() {
 
 		fmt.Println(json)
 		db.Where("username = ?", json.Username).First(&user)
-		//fmt.Println(user," qwq")
 		if user.Username == json.Username {
 			c.JSON(401, gin.H{
 				"success": false,
@@ -243,6 +248,7 @@ func main() {
 	r.POST("/logout", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
 		print(spy(cookie, c.ClientIP(), strconv.FormatInt(time.Now().UnixNano(), 10), c.Request.Method))
+		fmt.Println(cookie)
 		var json Post
 		//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
 		c.ShouldBindJSON(&json)
@@ -251,7 +257,7 @@ func main() {
 		if logoutMethod == "1" {
 			//登出操作，更新数据库中对应设备的登出时间
 			DeviceID, _ := c.Cookie("DeviceID")
-			db.Where("DeviceID = ?", DeviceID).UpdateColumns(Device{logoutTime: time.Now()})
+			db.Where("device_id = ?", DeviceID).UpdateColumns(Device{LogoutTime: time.Now()})
 			c.JSON(200, gin.H{
 				"success": 200,
 				"msg":     "登出成功!",
