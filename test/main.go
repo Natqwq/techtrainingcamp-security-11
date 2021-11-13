@@ -30,10 +30,11 @@ type Post struct {
 
 // CheckVcode 验证码
 type CheckVcode struct {
-	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
-	Vcode    string
-	Create   string
-	CreateAt time.Time
+	Phone      string `form:"phone" json:"PhoneNumber" binding:"required"`
+	Vcode      string
+	Create     string
+	CreateAt   time.Time
+	HasExpired bool
 }
 
 // Device 用户最近一次登录
@@ -67,7 +68,7 @@ func main() {
 	db, err := gorm.Open(mysql.Open(mysqlInfo), &gorm.Config{})
 
 	//如果数据库不存在表，则自动创表
-	db.AutoMigrate(&User{}, &CheckVcode{}, &Device{})
+	_ = db.AutoMigrate(&User{}, &CheckVcode{}, &Device{})
 
 	if err != nil {
 		fmt.Println(err)
@@ -80,8 +81,11 @@ func main() {
 	r.Static("/static", "./static")
 
 	r.GET("/", func(c *gin.Context) {
-		if riskCtrl(c) {
-			c.HTML(http.StatusOK, "login_username.html", nil)
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
+			c.HTML(http.StatusOK, "login_username.html", gin.H{
+				"spyMethod": spyMethod,
+			})
 		} else {
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",
@@ -90,8 +94,11 @@ func main() {
 	}) //用户名登录的get实现
 
 	r.GET("/login_phone", func(c *gin.Context) {
-		if riskCtrl(c) {
-			c.HTML(http.StatusOK, "login_phone.html", nil)
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
+			c.HTML(http.StatusOK, "login_phone.html", gin.H{
+				"spyMethod": spyMethod,
+			})
 		} else {
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",
@@ -102,13 +109,16 @@ func main() {
 	r.GET("/index", func(c *gin.Context) {
 		cookie, _ := c.Cookie("DeviceID")
 		var device Device
-		db.Where("device_id = ?",cookie).First(&device)
-		if cookie=="" || device.LogoutTime.Sub(time.Now()) <= 0 || device.DeviceID!= cookie {
+		db.Where("device_id = ?", cookie).First(&device)
+		if cookie == "" || device.LogoutTime.Sub(time.Now()) <= 0 || device.DeviceID != cookie {
 			c.HTML(403, "index.html", nil)
 			return
 		}
-		if riskCtrl(c) {
-			c.HTML(http.StatusOK, "index.html", nil)
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
+			c.HTML(http.StatusOK, "index.html", gin.H{
+				"spyMethod": spyMethod,
+			})
 		} else {
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",
@@ -117,8 +127,11 @@ func main() {
 	}) //主页的get实现
 
 	r.GET("/register", func(c *gin.Context) {
-		if riskCtrl(c) {
-			c.HTML(http.StatusOK, "register.html", nil)
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
+			c.HTML(http.StatusOK, "register.html", gin.H{
+				"spyMethod": spyMethod,
+			})
 		} else {
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",
@@ -127,15 +140,16 @@ func main() {
 	}) //注册界面的get实现
 
 	r.POST("/getVCode", func(c *gin.Context) {
-		if riskCtrl(c) {
-
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
 			var checkVcode CheckVcode
-			c.ShouldBindJSON(&checkVcode)
+			_ = c.ShouldBindJSON(&checkVcode)
 			code := create()                  //获得随机验证码
 			saveVcode(checkVcode.Phone, code) //存到数据库
 			c.JSON(200, gin.H{
-				"success": true,
-				"msg":     "发送成功！",
+				"success":   true,
+				"msg":       "发送成功！",
+				"spyMethod": spyMethod,
 			})
 			return
 		} else {
@@ -146,17 +160,19 @@ func main() {
 	})
 
 	r.POST("/", func(c *gin.Context) {
-		if riskCtrl(c) {
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
 
 			var json Post
-			c.ShouldBindJSON(&json)
+			_ = c.ShouldBindJSON(&json)
 			c1 <- json.Username
 			c2 <- json.Password
 			print(c1, c2)
 			if !signUsername(json.Username, json.Password) {
 				c.JSON(401, gin.H{
-					"success": false,
-					"msg":     "用户名密码不正确!",
+					"success":   false,
+					"msg":       "用户名密码不正确!",
+					"spyMethod": spyMethod,
 				})
 				return
 			}
@@ -193,24 +209,25 @@ func main() {
 	}) //用户名登录的post提交处理
 
 	r.POST("/login_phone", func(c *gin.Context) {
-		if riskCtrl(c) {
-
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
 			var json Post
-			c.ShouldBindJSON(&json)
+			_ = c.ShouldBindJSON(&json)
 			c3 <- json.Phone
 			if !signPhone(json.Phone) {
 				c.JSON(401, gin.H{
-					"success": false,
-					"msg":     "手机号未注册!",
+					"success":   false,
+					"msg":       "手机号未注册!",
+					"spyMethod": spyMethod,
 				})
 				return
-
 			}
 			//6位随机验证码生成
 			if !checkVcode(json) {
 				c.JSON(401, gin.H{
-					"success": false,
-					"msg":     "验证码错误或过期，请重试!",
+					"success":   false,
+					"msg":       "验证码错误或过期，请重试!",
+					"spyMethod": spyMethod,
 				})
 				return
 			}
@@ -229,7 +246,8 @@ func main() {
 	* 注册请求
 	 */
 	r.POST("/register", func(c *gin.Context) {
-		if riskCtrl(c) {
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
 			//此处需要统计用户IP和ID并返回此用户操作频次
 			//此处需要根据用户操作情况决定是否进行安全防护
 			//此处应当实现对新用户信息的存储
@@ -237,21 +255,23 @@ func main() {
 			var user User
 			var json Post
 
-			c.ShouldBindJSON(&json)
+			_ = c.ShouldBindJSON(&json)
 
 			fmt.Println(json)
 			db.Where("username = ?", json.Username).First(&user)
 			//fmt.Println(user," qwq")
 			if user.Username == json.Username {
 				c.JSON(401, gin.H{
-					"success": false,
-					"msg":     "该用户名已注册!",
+					"success":   false,
+					"msg":       "该用户名已注册!",
+					"spyMethod": spyMethod,
 				})
 				return
 			} else if !checkVcode(json) {
 				c.JSON(401, gin.H{
-					"success": false,
-					"msg":     "验证码错误!",
+					"success":   false,
+					"msg":       "验证码错误!",
+					"spyMethod": spyMethod,
 				})
 				return
 			} else {
@@ -273,10 +293,11 @@ func main() {
 	* 登出请求
 	**/
 	r.POST("/logout", func(c *gin.Context) {
-		if riskCtrl(c) {
+		isAllow, spyMethod := riskCtrl(c)
+		if isAllow {
 			var json Post
 			//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
-			c.ShouldBindJSON(&json)
+			_ = c.ShouldBindJSON(&json)
 			logoutMethod := json.Logout
 
 			if logoutMethod == "1" {
@@ -284,8 +305,9 @@ func main() {
 				DeviceID, _ := c.Cookie("DeviceID")
 				db.Where("device_id = ?", DeviceID).UpdateColumns(Device{LogoutTime: time.Now()})
 				c.JSON(200, gin.H{
-					"success": 200,
-					"msg":     "登出成功!",
+					"success":   200,
+					"msg":       "登出成功!",
+					"spyMethod": spyMethod,
 				})
 			}
 			if logoutMethod == "2" {
@@ -293,8 +315,9 @@ func main() {
 				if signUsername(json.Username, json.Password) {
 					delete(json.Phone)
 					c.JSON(200, gin.H{
-						"success": 200,
-						"msg":     "删除成功!",
+						"success":   200,
+						"msg":       "删除成功!",
+						"spyMethod": spyMethod,
 					})
 				}
 			}
@@ -305,6 +328,6 @@ func main() {
 		}
 	})
 
-	r.Run(":8080")
+	_ = r.Run(":8080")
 
 }

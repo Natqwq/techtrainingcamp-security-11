@@ -4,17 +4,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
-	"net/http"
 	"strconv"
 	"time"
 )
-
-func slideBar(c *gin.Context) {
-	c.JSON(http.StatusTooManyRequests, gin.H{
-		"slideBar": true,
-		"message":  "SlideBar Needed",
-	})
-} //滑动条
 
 func limitBan(id string, lim *rate.Limiter, level int) {
 	if level <= 3 {
@@ -33,7 +25,13 @@ func limitBan(id string, lim *rate.Limiter, level int) {
 	}
 } //分级禁止
 
-func riskCtrl(c *gin.Context) bool {
+/*
+*  风控逻辑实现
+* isAllow :  返回是否通过风控
+* spyMethod: 处理结果-为 0 即时通过， 为 1 既是 limitBan， 为 2 既是 需要slideBar
+ */
+func riskCtrl(c *gin.Context) (isAllow bool, spyMethod int) {
+	spyMethod = 0
 	id, _ := c.Cookie("DeviceID")
 	method, _ := c.Request.Method, c.ClientIP()
 	now := strconv.FormatInt(time.Now().UnixNano(), 10)
@@ -41,10 +39,11 @@ func riskCtrl(c *gin.Context) bool {
 	fmt.Printf("%f %d %d", avgFreq, normFreq, tleFreq)
 	if tleFreq != -1 {
 		limitBan(id, limiter, tleFreq)
+		spyMethod = 1
 	} else if method == "GET" && (normFreq >= 20 || avgFreq >= 6) && tleFreq == -1 {
-		slideBar(c)
+		spyMethod = 2
 	} else if method == "POST" && (normFreq >= 8 || avgFreq >= 3) && tleFreq == -1 {
-		slideBar(c)
+		spyMethod = 2
 	}
-	return allow
+	return allow, spyMethod
 } // 风控实现

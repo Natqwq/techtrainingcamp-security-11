@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>注册</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/me.css" type="text/css">
     <link rel="stylesheet" href="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/css/materialize.min.css" type="text/css">
     <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/jquery.js" charset="UTF-8"></script>
     <script type="text/javascript" src="https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/VotingSystem/js/materialize.min.js" charset="UTF-8"></script>
@@ -11,42 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/validate-js/2.0.1/validate.min.js" integrity="sha512-8GLIg5ayTvD6F9ML/cSRMD19nHqaLPWxISikfc5hsMJyX7Pm+IIbHlhBDY2slGisYLBqiVNVll+71CYDD5RBqA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
     <script src="static/js/myInit.js" type="text/javascript"></script>
-    <style>
-        body {
-            background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/assessment/background.png") no-repeat center;
-            /*background-color: rgba(244,244,244);*/
-            background-size: cover;
-            background-attachment: fixed;
-            -moz-transform: scale(1);
-            -moz-transform-origin: 0 0;
-            display: flex;
-            min-height: 100vh;
-            flex-direction: column;
-
-        }
-        .bg{
-            background: url("https://kauizhaotan.oss-cn-shanghai.aliyuncs.com/CatchMe/index-2.jpg") no-repeat center;
-            background-size: cover;
-            background-attachment: fixed;
-            -moz-transform: scale(1);
-            -moz-transform-origin: 0 0;
-            display: flex;
-            position: relative;
-            flex-direction: column;
-        }
-        #channelTitleSpan{
-            right: 0;
-            left: 0 !important;
-            text-align: center;
-            font-size: 43px;
-        }
-        /*----login---------*/
-        .login-container{
-            width: 90%; !important;
-            margin-bottom: 6%;
-            margin-top: 6%;
-        }
-    </style>
+    <script src='https://www.google.com/recaptcha/api.js'></script>
 </head>
 <body class="bg">
     <!--nav开始-->
@@ -111,6 +77,14 @@
                                         <label for="VerifyCode">验证码</label>
                                     </div>
                                 </div>
+                                <div class="row" id="captcha" hidden>
+                                    <span id="spyMethod" hidden>{{.spyMethod}}</span>
+                                    <div class="center" style="margin-left: 25%;">
+                                        <form  method="post">
+                                            <div class="g-recaptcha center" data-size="50" data-sitekey="6LfqIi0dAAAAAKk05AI4E0DZzGXK6D5ruEt0r4Wa" data-callback="correctCaptcha"></div>
+                                        </form>
+                                    </div>
+                                </div>
                                 <div class="section row">
                                     <div class="center">
                                         <input name="_csrf" type="hidden" value="93edbebc-aa90-4b8c-b372-28f922a9a9e6"/>
@@ -136,7 +110,20 @@
     <script color="0,0,0" opacity="0.5" count="99" src="https://cdn.bootcss.com/canvas-nest.js/1.0.1/canvas-nest.js" type="text/javascript" charset="utf-8"></script>
 </body>
 <script>
+    let reCAPTCHA = "";
+    let needSpy = $("#spyMethod").text() == "1" ? true : false;
     myInit();
+
+    /*需要验证那么就显示验证码*/
+    if(needSpy){
+        $("#captcha").attr("hidden", false);
+    }
+    /*验证码回调*/
+    var correctCaptcha = function(response) {
+        reCAPTCHA = response;
+    };
+
+    /*发送验证码*/
     $("#getVerifyCodeBtn").click(function () {
         $("#VerifyCode").attr("disabled", false);
         let phoneNum = $("#PhoneNumber").val()
@@ -214,6 +201,11 @@
         }else if(username.length < 5 || username.length > 16){
             M.toast({
                 html : "用户名长度应该位5-16位！",
+                classes : "rounded red"
+            })
+        }else if(needSpy && reCAPTCHA.length == 0){
+            M.toast({
+                html : "请完成身份验证！",
                 classes : "rounded red"
             })
         } else{

@@ -12,6 +12,7 @@
     <script src="http://static.runoob.com/assets/jquery-validation-1.14.0/dist/jquery.validate.min.js"></script>
     <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
     <script src="static/js/myInit.js" type="text/javascript"></script>
+    <script src='https://www.google.com/recaptcha/api.js'></script>
 </head>
 <body class="bg">
     <!--nav开始-->
@@ -21,15 +22,15 @@
         </div>
     </nav>
     <!--nav结束-->
-
+    {{ .title }}
         <!--主体开始-->
         <div class="container login-container" style="flex: 1 0 auto; width: 90%">
             <!--开始-->
             <div class="row section ">
                 <div class="col s12 l12">
-                    <div class="card horizontal large" style="height: 600px; background-color: rgba(255,255,255,0.5)" >
+                    <div class="card horizontal large" style="   height: 734px; background-color: rgba(255,255,255,0.5)" >
                         <div class="card-image">
-                            <img width="600" height="500" src="https://pic1.xuehuaimg.com/proxy/https://picsum.photos/seed/600/500?blur=5" class="responsive-img wp-post-image" loading="lazy"  sizes="(max-width: 305px) 100vw, 305px">
+                            <img width="600" height="600" src="https://pic1.xuehuaimg.com/proxy/https://picsum.photos/seed/600/500?blur=5" class="responsive-img wp-post-image" loading="lazy"  sizes="(max-width: 305px) 100vw, 305px">
                             <span class="card-title" id="channelTitleSpan" style=" background-color: rgba(0,0,0,0)" >
                                     <span style="font-size: 64px;line-height: 240px;">抓到你了！
                                         <br>Catch you！
@@ -56,6 +57,14 @@
                                                     <i class="material-icons prefix">vpn_key</i>
                                                     <input id="Password" type="password"  class="validate" name="Password" value="">
                                                     <label for="Password">密码</label>
+                                                </div>
+                                            </div>
+                                            <div class="row" id="captcha" hidden>
+                                                <span id="spyMethod" hidden>{{.spyMethod}}</span>
+                                                <div class="center" style="margin-left: 25%;">
+                                                    <form  method="post">
+                                                        <div class="g-recaptcha center" data-size="50" data-sitekey="6LfqIi0dAAAAAKk05AI4E0DZzGXK6D5ruEt0r4Wa" data-callback="correctCaptcha"></div>
+                                                    </form>
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -89,6 +98,8 @@
     <script color="0,0,0" opacity="0.5" count="99" src="https://cdn.bootcss.com/canvas-nest.js/1.0.1/canvas-nest.js" type="text/javascript" charset="utf-8"></script>
 </body>
 <script>
+    let reCAPTCHA = "";
+    let needSpy = $("#spyMethod").text() == "2" ? true : false;
     $().ready(function () {
         myInit();
         $("#login-form").validate({
@@ -129,6 +140,16 @@
         })
     });
 
+    /*需要验证那么就显示验证码*/
+    if(needSpy){
+        $("#captcha").attr("hidden", false);
+    }
+    /*验证码回调*/
+    var correctCaptcha = function(response) {
+        reCAPTCHA = response;
+    };
+
+    /*登录按钮*/
     $("#login").click(function (){
         $("#login").attr("disabled",true);
         let UserName = $("#UserName").val();
@@ -140,6 +161,14 @@
             })
             $("#login").attr("disabled",false);
             $("#Password").val("");
+            return;
+        }
+        if(needSpy && reCAPTCHA.length == 0){
+            M.toast({
+                html : "请先完成验证后重试！",
+                classes: "rounded red"
+            })
+            $("#login").attr("disabled",false);
             return;
         }
         let loginData = {
