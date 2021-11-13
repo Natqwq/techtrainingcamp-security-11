@@ -32,7 +32,7 @@ func signUsername(username string, password string) bool {
 	}
 	var user User
 	db.Where("username = ?", username).First(&user)
-	if user.Username != username || user.Password != password {
+	if user.Username != username || decode(user.Password) != password {
 		return false //用户名与密码不匹配
 	}
 
@@ -46,7 +46,7 @@ func save(username string, phone string, password string) {
 	}
 	var user User
 	user.Username = username
-	user.Password = password
+	user.Password = encode(password)
 	user.Phone = phone
 	fmt.Println(user)
 	db.Create(&user)

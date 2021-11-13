@@ -249,10 +249,6 @@ func main() {
 	r.POST("/register", func(c *gin.Context) {
 		isAllow, spyMethod := riskCtrl(c)
 		if isAllow {
-			//此处需要统计用户IP和ID并返回此用户操作频次
-			//此处需要根据用户操作情况决定是否进行安全防护
-			//此处应当实现对新用户信息的存储
-
 			var user User
 			var json Post
 

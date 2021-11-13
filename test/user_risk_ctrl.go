@@ -21,7 +21,7 @@ func limitBan(id string, lim *rate.Limiter, level int) {
 	} else {
 		lim.SetLimit(0)
 		lim.SetBurst(0)
-		_, rc.err = rc.cnt.Do("EXPIRE", id, 3600)
+		_, rc.err = rc.cnt.Do("EXPIRE", id, 2400)
 	}
 } //分级禁止
 
@@ -37,12 +37,12 @@ func riskCtrl(c *gin.Context) (isAllow bool, spyMethod int) {
 	now := strconv.FormatInt(time.Now().UnixNano(), 10)
 	limiter, avgFreq, normFreq, tleFreq, allow := spy(id, c.ClientIP(), now, method)
 	fmt.Printf("%f %d %d", avgFreq, normFreq, tleFreq)
-	if tleFreq != -1 {
+	if tleFreq != 0 {
 		limitBan(id, limiter, tleFreq)
 		spyMethod = 1
-	} else if method == "GET" && (normFreq >= 20 || avgFreq >= 6) && tleFreq == -1 {
+	} else if method == "GET" && (normFreq >= 20 || avgFreq >= 6) && tleFreq == 0 {
 		spyMethod = 2
-	} else if method == "POST" && (normFreq >= 8 || avgFreq >= 3) && tleFreq == -1 {
+	} else if method == "POST" && (normFreq >= 8 || avgFreq >= 3) && tleFreq == 0 {
 		spyMethod = 2
 	}
 	return allow, spyMethod

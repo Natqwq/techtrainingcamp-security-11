@@ -55,7 +55,7 @@ func (l *Limiter) AddID(id string, ip string, now string) *rate.Limiter {
 	_, l.err = l.cnt.Do("HSET", id, "ip", ip, "bgTime", now, "normFreq", 1, "tleFreq", 0)
 	_, l.err = l.cnt.Do("EXPIRE", id, redisExpire)
 	l.normFreqChan <- 1
-	//插入记录，设置过期时间为1分钟，norm_freq表示一分钟内访问次数，tle_freq表示一分钟内被拒绝的访问次数
+	//插入记录，设置过期时间为3分钟，norm_freq表示一分钟内访问次数，tle_freq表示一分钟内被拒绝的访问次数
 	l.mu.Unlock()
 	return limiter
 }
