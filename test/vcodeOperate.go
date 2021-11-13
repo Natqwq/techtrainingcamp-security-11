@@ -11,15 +11,19 @@ import (
 
 func checkVcode(v Post) bool {
 	phone := v.Phone
+	var vcheck CheckVcode
 	db, err := gorm.Open(mysql.Open(mysqlInfo), &gorm.Config{})
 	if err != nil {
 		fmt.Println(err)
 	}
-	var vcheck CheckVcode
-	//TODO；这里应该是根据手机号进行查找
-	db.Where("vcode = ?", v.Vcode).First(&vcheck)
 
-	if vcheck.Vcode != v.Vcode || phone != vcheck.Phone {
+	//获取此用户最近的一条验证码
+	db.Where("phone = ?", phone).Order("create_at DESC").Limit(1).First(&vcheck)
+	if &vcheck == nil {
+		return false
+	} else if vcheck.HasExpired {
+		return false
+	} else if vcheck.Vcode != v.Vcode || phone != vcheck.Phone {
 		return false
 	}
 	int64, _ := strconv.ParseInt(vcheck.Create, 10, 64)
@@ -28,6 +32,8 @@ func checkVcode(v Post) bool {
 	if now-int64 > vcodeValid {
 		return false
 	}
+	vcheck.HasExpired = true
+	db.Model(&vcheck).Update("has_expired", true)
 	return true
 }
 

@@ -30,6 +30,7 @@ type Post struct {
 
 // CheckVcode 验证码
 type CheckVcode struct {
+	ID         uint
 	Phone      string `form:"phone" json:"PhoneNumber" binding:"required"`
 	Vcode      string
 	Create     string
