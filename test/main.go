@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gomodule/redigo/redis"
+	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
 	_ "gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -13,6 +15,7 @@ import (
 
 // User 用户表
 type User struct {
+	ID       uint
 	Username string `form:"user" json:"UserName" binding:"required"`
 	Password string `form:"password" json:"Password" binding:"required"`
 	Phone    string `form:"phone" json:"PhoneNumber" binding:"required"`
@@ -66,10 +69,15 @@ func main() {
 	c1 := make(chan string, chanBuf)
 	c2 := make(chan string, chanBuf)
 	c3 := make(chan string, chanBuf)
+	//打开数据库连接对象
 	db, err := gorm.Open(mysql.Open(mysqlInfo), &gorm.Config{})
 
 	//如果数据库不存在表，则自动创表
 	_ = db.AutoMigrate(&User{}, &CheckVcode{}, &Device{})
+
+	//打开redis连接对象
+	rdb, _ := redis.Dial("tcp", redisIP)
+	_, _ = rdb.Do("AUTH", redisPsd)
 
 	if err != nil {
 		fmt.Println(err)
@@ -108,14 +116,17 @@ func main() {
 	}) //手机号登录的get实现
 
 	r.GET("/index", func(c *gin.Context) {
-		cookie, _ := c.Cookie("DeviceID")
-		var device Device
-		db.Where("device_id = ?", cookie).First(&device)
-		if cookie == "" || device.LogoutTime.Sub(time.Now()) <= 0 || device.DeviceID != cookie {
-			c.HTML(403, "index.html", nil)
+		isAllow, spyMethod := riskCtrl(c)
+
+		//获得浏览器中的JSESSIONID
+		JSESSIONID, err := c.Cookie("JSESSIONID")
+		auth, _ := redis.Bool(rdb.Do("Exists", JSESSIONID))
+		if err != nil || !auth {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"msg": "未登录！",
+			})
 			return
 		}
-		isAllow, spyMethod := riskCtrl(c)
 		if isAllow {
 			c.HTML(http.StatusOK, "index.html", gin.H{
 				"spyMethod": spyMethod,
@@ -163,7 +174,6 @@ func main() {
 	r.POST("/", func(c *gin.Context) {
 		isAllow, spyMethod := riskCtrl(c)
 		if isAllow {
-
 			var json Post
 			_ = c.ShouldBindJSON(&json)
 			c1 <- json.Username
@@ -177,32 +187,16 @@ func main() {
 				})
 				return
 			}
-			var device Device
-			device.Username, device.LoginTime = json.Username, time.Now()
-			device.DeviceID = json.EnvironmentBase.DeviceID
-			device.Ip = c.ClientIP()
-			device.LogoutTime = time.Now().Add(time.Minute * 1440)
-			var nowDevice Device
-			db.Where("username = ?", device.Username).First(&nowDevice)
-			if nowDevice.Username != device.Username || nowDevice.LogoutTime.Sub(device.LoginTime) < 0 {
-				db.Create(&device)
-			} else {
-				db.Where("username = ?", device.Username).Updates(Device{
-					Username:   device.Username,
-					Ip:         device.Ip,
-					DeviceID:   device.DeviceID,
-					LoginTime:  device.LoginTime,
-					LogoutTime: device.LogoutTime,
-				})
-			}
-			fmt.Println("device=", device)
-			fmt.Println("ip= ", device.Ip)
-			fmt.Println("DeviceID= ", device.DeviceID)
+			//生成JSESSIONID保存在redis中
+			u1, _ := uuid.NewUUID()
+			c.SetCookie("JSESSIONID", u1.String(), 60*60, "/", "localhost", false, false)
+			rdb.Do("SET", u1, json.Username)
 			c.JSON(200, gin.H{
 				"success": true,
 				"msg":     "登录成功！",
 			})
 		} else {
+			print(1)
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",
 			})
@@ -291,16 +285,22 @@ func main() {
 	**/
 	r.POST("/logout", func(c *gin.Context) {
 		isAllow, spyMethod := riskCtrl(c)
+		JSESSIONID, _ := c.Cookie("JSESSIONID")
 		if isAllow {
 			var json Post
 			//此处应当根据logout的值做分支处理，若为2则需要删除此用户信息
 			_ = c.ShouldBindJSON(&json)
-			logoutMethod := json.Logout
+			//删除redis中的JSESSIONID
+			userAuth, err := redis.String(rdb.Do("GET", JSESSIONID))
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "请先登录！",
+				})
+				return
+			}
 
+			logoutMethod := json.Logout
 			if logoutMethod == "1" {
-				//登出操作，更新数据库中对应设备的登出时间
-				DeviceID, _ := c.Cookie("DeviceID")
-				db.Where("device_id = ?", DeviceID).UpdateColumns(Device{LogoutTime: time.Now()})
 				c.JSON(200, gin.H{
 					"success":   200,
 					"msg":       "登出成功!",
@@ -309,15 +309,22 @@ func main() {
 			}
 			if logoutMethod == "2" {
 				//注销操作，删除数据库中账户
-				if signUsername(json.Username, json.Password) {
-					delete(json.Phone)
-					c.JSON(200, gin.H{
-						"success":   200,
-						"msg":       "删除成功!",
+				if err != nil {
+					c.JSON(500, gin.H{
+						"success":   500,
+						"msg":       "删除错误!",
 						"spyMethod": spyMethod,
 					})
+					return
 				}
+				delete(userAuth)
+				c.JSON(200, gin.H{
+					"success":   200,
+					"msg":       "删除成功!",
+					"spyMethod": spyMethod,
+				})
 			}
+			rdb.Do("DEL", JSESSIONID)
 		} else {
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",

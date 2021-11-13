@@ -43,7 +43,6 @@ func InitLimiter(r rate.Limit, b int) {
 	if rc.err != nil {
 		panic(rc.err)
 	}
-	// defer rc.cnt.Close()
 }
 
 // AddID AddID创建了一个新的速率限制器，并将其添加到ips映射中，

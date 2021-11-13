@@ -52,12 +52,12 @@ func save(username string, phone string, password string) {
 	db.Create(&user)
 } //存储新用户信息
 
-func delete(phone string) {
+func delete(username string) {
 	db, err := gorm.Open(mysql.Open(mysqlInfo), &gorm.Config{})
 	if err != nil {
 		fmt.Println(err)
 	}
 	var user User
-	db.Where("phone = ?", phone).First(&user)
+	db.Where("username = ?", username).First(&user)
 	db.Delete(&user)
 } //删除用户

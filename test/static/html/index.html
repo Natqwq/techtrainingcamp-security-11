@@ -21,7 +21,7 @@
                         <button  value="1" class="waves-effect waves-light btn-large" id="logout" onclick = "logout(this.value)">登出</button>
                         </br>
                         </br>
-<!--                        <a  value="2" class="waves-effect waves-light btn-large" onclick = "logout(this.value)">注销</a>-->
+                        <button  value="2" class="waves-effect waves-light btn-large" onclick = "logout(this.value)">注销</button>
                     </div>
             </div>
     </body>
@@ -29,6 +29,7 @@
 
         myInit();
         function logout(logoutMethod){
+
             $("#logout").attr("disabled",true);
             let formData = {
                 Environment: {
@@ -36,6 +37,7 @@
                 },
                 Logout:  logoutMethod + ""
             }
+
             formData = JSON.stringify(formData);
             $.ajax({
                 url : "/logout",
