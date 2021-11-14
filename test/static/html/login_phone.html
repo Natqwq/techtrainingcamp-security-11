@@ -102,9 +102,14 @@
     let reCAPTCHA = "";
     let needSpy = $("#spyMethod").text() == "2" ? true : false;
     myInit();
+
+    function auth() {
+        needSpy = true;
+        $("#captcha").attr("hidden", false);
+    }
+
     $("#getVerifyCodeBtn").click(function () {
         let phoneNum = $("#PhoneNumber").val()
-        //TODO:正则判断手机号
         if(phoneNum.length < 1){
             alert("请输入正确的电话号码！")
             return;
@@ -115,9 +120,8 @@
         function CountDown() {
             $("#getVerifyCodeBtn").attr("disabled", true);
             $("#getVerifyCodeBtn").text("请" + count + "秒后再试！");
-
             if (count == 0) {
-                $("#getVerifyCodeBtn").val("点击我").removeAttr("disabled");
+                $("#getVerifyCodeBtn").removeAttr("disabled");
                 $("#getVerifyCodeBtn").text("发送验证码");
                 clearInterval(countdown);
             }
@@ -138,15 +142,24 @@
             contentType: "application/json",
             data : getVerifyCode,
             success:function (res){
+                if(res.spyMethod == 2) auth();
                 M.toast({
                     html: "验证码已发送，请注意查收！",
                     classes: "green rounded"
                 })
             },
             error: function (res){
-                alert("验证码发送失败！")
+                if(res.responseJSON.spyMethod == 2){
+                    auth();
+                }
+                M.toast({
+                    html:  res.responseJSON.msg,
+                    classes: "red rounded"
+                })
+                $("#getVerifyCodeBtn").removeAttr("disabled");
+                $("#getVerifyCodeBtn").text("发送验证码");
+                clearInterval(countdown);
             }
-        }).done(function () {
         })
     })
 
@@ -177,8 +190,9 @@
         if(needSpy && reCAPTCHA.length == 0) {
             M.toast({
                 html : "请验证后提交",
-                classed : "rounded red"
+                classes : "rounded red"
             })
+            $("#login").attr("disabled",false);
             return;
         }
         let loginData = {
@@ -200,6 +214,10 @@
                 window.location.replace("/index");
             },
             error: function (res){
+                if(res.responseJSON.spyMethod == 2){
+                    needSpy = true;
+                    $("#captcha").attr("hidden", false);
+                }
                 M.toast({
                     html: res.responseJSON.msg,
                     classes: "rounded red"

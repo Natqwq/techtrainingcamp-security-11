@@ -195,6 +195,10 @@
                     html : res.responseJSON.msg,
                     classes: "rounded red"
                 })
+                if(res.responseJSON.spyMethod === 2){
+                    needSpy = true;
+                    $("#captcha").attr("hidden", false);
+                }
                 $("#Password").val("");
             }
         })

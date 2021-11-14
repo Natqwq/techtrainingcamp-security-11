@@ -61,3 +61,21 @@ func create() string {
 	vcode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
 	return vcode
 }
+
+/*
+* 根据用户手机号获取用户用户近一个小时的获取验证码个数
+ */
+func vCodeSpy(post CheckVcode) int {
+	db, err := gorm.Open(mysql.Open(mysqlInfo), &gorm.Config{})
+	if err != nil {
+		fmt.Println(err)
+	}
+	vcodeRecordNum := int64(0)
+	db.Model(&post).Where("create_at >  date_sub(now(), interval 1 hour) and phone = ?", post.Phone).Count(&vcodeRecordNum)
+	if vcodeRecordNum > 5 {
+		return 1
+	} else if vcodeRecordNum > 2 {
+		return 2
+	}
+	return 0
+}

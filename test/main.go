@@ -128,6 +128,8 @@ func main() {
 			return
 		}
 		if isAllow {
+			//更新用户redis中该连请求的状态
+			rdb.Do("EXPIRE", JSESSIONID, 60*60)
 			c.HTML(http.StatusOK, "index.html", gin.H{
 				"spyMethod": spyMethod,
 			})
@@ -156,14 +158,26 @@ func main() {
 		if isAllow {
 			var checkVcode CheckVcode
 			_ = c.ShouldBindJSON(&checkVcode)
-			code := create()                  //获得随机验证码
-			saveVcode(checkVcode.Phone, code) //存到数据库
-			c.JSON(200, gin.H{
-				"success":   true,
-				"msg":       "发送成功！",
-				"spyMethod": spyMethod,
-			})
-			return
+			//是否通过验证码认证
+			spyCode := vCodeSpy(checkVcode)
+			if spyCode == 0 || spyCode == 2 {
+				code := create() //获得随机验证码
+				saveVcode(checkVcode.Phone, code)
+				//存到数据库
+				if spyCode == 2 {
+					spyMethod = 2
+				}
+				c.JSON(200, gin.H{
+					"success":   true,
+					"msg":       "发送成功！",
+					"spyMethod": spyMethod,
+				})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg":       "验证码发送次数过多，请稍后再试！",
+					"spyMethod": spyMethod,
+				})
+			}
 		} else {
 			c.JSON(http.StatusLocked, gin.H{
 				"message": "Too many requests, page locked!",
@@ -189,8 +203,12 @@ func main() {
 			}
 			//生成JSESSIONID保存在redis中
 			u1, _ := uuid.NewUUID()
-			c.SetCookie("JSESSIONID", u1.String(), 60*60, "/", "localhost", false, false)
-			rdb.Do("SET", u1, json.Username)
+			http.SetCookie(c.Writer, &http.Cookie{
+				Name:  "JSESSIONID",
+				Value: u1.String(),
+			})
+			rdb.Do("SET", u1.String(), json.Username)
+			rdb.Do("EXPIRE", u1.String(), 60*60)
 			c.JSON(200, gin.H{
 				"success": true,
 				"msg":     "登录成功！",
@@ -226,6 +244,15 @@ func main() {
 				})
 				return
 			}
+			//生成JSESSIONID保存在redis中
+			u1, _ := uuid.NewUUID()
+			http.SetCookie(c.Writer, &http.Cookie{
+				Name:  "JSESSIONID",
+				Value: u1.String(),
+			})
+			//c.SetCookie("JSESSIONID", u1.String(), , "/", "localhost", false, false)
+			rdb.Do("SET", u1, json.Phone)
+			rdb.Do("EXPIRE", u1.String(), 60*60)
 			c.JSON(200, gin.H{
 				"success": true,
 				"msg":     "手机号登录成功!",
